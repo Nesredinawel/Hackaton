@@ -1,11 +1,26 @@
 import type {
   AgentProfile,
   EnterpriseEnquiry,
+  MarketCode,
   Redemption,
   SubscriptionStatus,
   Tier,
   UserAccount,
 } from './types'
+import {
+  approveApplication,
+  clearTokens,
+  fetchDashboard,
+  getAccessToken,
+  listApplications,
+  listRedeemRequests,
+  login,
+  rejectApplication,
+  resolveRedeem,
+  saveSession,
+  savedDisplayName,
+  type ApiApplication,
+} from '@/lib/api'
 
 /* Shared localStorage keys — same as Consumer_app demo store */
 
@@ -37,35 +52,93 @@ function read<T>(key: string, fallback: T): T {
 /* ── Admin auth ─────────────────────────────────────────────── */
 
 export function isAdminSignedIn(): boolean {
-  return read<string | null>(ADMIN_SESSION_KEY, null) === DEMO_ADMIN.email
+  return Boolean(getAccessToken()) || read<string | null>(ADMIN_SESSION_KEY, null) === DEMO_ADMIN.email
 }
 
 export type AdminSignInResult = { ok: true } | { ok: false; error: string }
 
-export function adminSignIn(email: string, password: string): AdminSignInResult {
+export async function adminSignIn(email: string, password: string): Promise<AdminSignInResult> {
   const normalized = email.trim().toLowerCase()
-  if (normalized === DEMO_ADMIN.email && password === DEMO_ADMIN.password) {
-    localStorage.setItem(ADMIN_SESSION_KEY, JSON.stringify(DEMO_ADMIN.email))
+  try {
+    const tokens = await login(normalized, password)
+    const name =
+      tokens.user?.display_name
+      || tokens.user?.full_name
+      || tokens.user?.email
+      || DEMO_ADMIN.name
+    saveSession(tokens.access_token, tokens.refresh_token, name)
+    localStorage.setItem(ADMIN_SESSION_KEY, JSON.stringify(normalized))
     return { ok: true }
+  } catch (error) {
+    // Offline / demo fallback for local mock password only.
+    if (normalized === DEMO_ADMIN.email && password === DEMO_ADMIN.password) {
+      localStorage.setItem(ADMIN_SESSION_KEY, JSON.stringify(DEMO_ADMIN.email))
+      return { ok: true }
+    }
+    return {
+      ok: false,
+      error: error instanceof Error ? error.message : 'invalid_credentials',
+    }
   }
-  return { ok: false, error: 'invalid_credentials' }
 }
 
 export function adminSignOut(): void {
+  clearTokens()
   localStorage.removeItem(ADMIN_SESSION_KEY)
 }
 
 export function adminDisplayName(): string {
-  return DEMO_ADMIN.name
+  return savedDisplayName() || DEMO_ADMIN.name
 }
 
-/* ── Agents ───────────────────────────────────────────────── */
+/* ── Agents (live applications API) ───────────────────────── */
+
+function mapApplication(row: ApiApplication): AgentProfile {
+  return {
+    id: row.id,
+    full_name: row.full_name,
+    phone_number: row.phone_number,
+    city: row.city,
+    subcity: row.subcity ?? '',
+    preferred_market_code: row.preferred_market_code as MarketCode,
+    market_label: row.preferred_market_code,
+    languages: row.languages ?? '',
+    consent_honest_reporting: true,
+    notes: row.notes,
+    telegram_username: row.telegram_username,
+    status: row.status as AgentProfile['status'],
+    submittedAt: row.created_at?.slice(0, 10) ?? today(),
+    reviewedAt: row.reviewed_at?.slice(0, 10) ?? null,
+    approvedAt: row.status === 'approved' ? row.reviewed_at?.slice(0, 10) ?? null : null,
+    streak: 0,
+    bestStreak: 0,
+    totalReports: 0,
+    points: 0,
+    level: 1,
+    lastReportDate: null,
+  }
+}
+
+export async function fetchPendingApplications(): Promise<AgentProfile[]> {
+  try {
+    const rows = await listApplications('pending')
+    return rows.map(mapApplication)
+  } catch (error) {
+    console.warn('fetchPendingApplications failed', error)
+    const local = getAgentProfile()
+    return local && local.status === 'pending' ? [local] : []
+  }
+}
 
 export function getAgentProfile(): AgentProfile | null {
   return read<AgentProfile | null>(PROFILE_KEY, null)
 }
 
-export function approveAgent(): AgentProfile | null {
+export async function approveAgent(applicationId?: string): Promise<AgentProfile | null> {
+  if (applicationId && getAccessToken()) {
+    const row = await approveApplication(applicationId)
+    return mapApplication(row)
+  }
   const profile = getAgentProfile()
   if (!profile) return null
   profile.status = 'approved'
@@ -75,13 +148,63 @@ export function approveAgent(): AgentProfile | null {
   return profile
 }
 
-export function rejectAgent(): AgentProfile | null {
+export async function rejectAgent(applicationId?: string): Promise<AgentProfile | null> {
+  if (applicationId && getAccessToken()) {
+    const row = await rejectApplication(applicationId)
+    return mapApplication(row)
+  }
   const profile = getAgentProfile()
   if (!profile) return null
   profile.status = 'rejected'
   profile.reviewedAt = today()
   localStorage.setItem(PROFILE_KEY, JSON.stringify(profile))
   return profile
+}
+
+export async function loadLiveDashboardStats(): Promise<{
+  pendingAgents: number
+  approvedAgents: number
+  pendingRedemptions: number
+  totalAccounts: number
+  totalEnquiries: number
+} | null> {
+  try {
+    const dash = await fetchDashboard()
+    const s = dash.stats ?? {}
+    return {
+      pendingAgents: Number(s.pending_agents ?? 0),
+      approvedAgents: Number(s.approved_agents ?? 0),
+      pendingRedemptions: Number(s.pending_redemptions ?? 0),
+      totalAccounts: Number(s.total_accounts ?? 0),
+      totalEnquiries: Number(s.total_enquiries ?? 0),
+    }
+  } catch {
+    return null
+  }
+}
+
+export async function fetchLiveRedemptions(): Promise<Redemption[]> {
+  try {
+    const rows = await listRedeemRequests('pending')
+    return rows.map((row) => ({
+      id: row.id,
+      amount: Number(row.points_redeemed),
+      phone: row.telegram_id ?? '—',
+      status: row.status === 'paid' ? 'completed' : 'pending',
+      requestedAt: row.created_at?.slice(0, 10) ?? today(),
+      completedAt: row.resolved_at?.slice(0, 10) ?? null,
+    }))
+  } catch {
+    return getRedemptions()
+  }
+}
+
+export async function completeLiveRedemption(id: string): Promise<void> {
+  if (getAccessToken()) {
+    await resolveRedeem(id, 'paid')
+    return
+  }
+  completeRedemption(id)
 }
 
 /* ── Accounts ─────────────────────────────────────────────── */

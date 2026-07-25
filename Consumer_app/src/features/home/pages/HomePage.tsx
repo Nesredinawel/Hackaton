@@ -1,6 +1,7 @@
-import type { ReactNode } from 'react'
+import { useEffect, useState, type ReactNode } from 'react'
 import type { Lang, NavScreen, Published } from '@/data'
 import { COMMODITIES, MARKETS, getP, getMarketLeaderboard, getItemLeaderboard, IMG, PLANS, PRO_MONTHLY_PRICE, canAccess } from '@/data'
+import { askCopilot, fetchAffordability, type AffordabilitySnapshot, type CopilotResult } from '@/data/live'
 import { LiveDot, Btn, ItemCard, ReportPriceCta, AgentBotCta, reportPriceCopy, agentBotCopy } from '@/shared/components'
 
 function heatColor(avg: number): string {
@@ -140,6 +141,14 @@ function PricingTeaserCard({ lang, navigate, plan }: {
 }
 
 export default function HomePage({ lang, navigate }: { lang: Lang; navigate: (s: NavScreen) => void }) {
+  const [afford, setAfford] = useState<AffordabilitySnapshot | null>(null)
+  const [copilot, setCopilot] = useState<CopilotResult | null>(null)
+
+  useEffect(() => {
+    void fetchAffordability().then(setAfford)
+    void askCopilot(50000).then(setCopilot)
+  }, [])
+
   const totalLive = COMMODITIES.flatMap(c => MARKETS.map(m => getP(c.id, m.id)))
     .filter(p => p.status === 'published').length
 
@@ -223,6 +232,41 @@ export default function HomePage({ lang, navigate }: { lang: Lang; navigate: (s:
           </div>
         </div>
       </section>
+
+      {(afford?.status === 'published' || copilot?.answer) && (
+        <section className="border-t theme-border">
+          <div className="max-w-6xl mx-auto px-6 lg:px-10 py-12 lg:py-16 grid gap-4 lg:grid-cols-2">
+            {afford?.status === 'published' && afford.cost_now != null && (
+              <div className="rounded-2xl theme-card p-6">
+                <p className="text-[11px] font-bold uppercase tracking-[0.14em] theme-accent mb-2">
+                  Affordability · live API
+                </p>
+                <p className="theme-text text-2xl font-bold tabular-nums" style={display}>
+                  {Math.round(afford.cost_now).toLocaleString()} ETB
+                </p>
+                <p className="mt-2 text-sm theme-text-muted">
+                  Staple basket now
+                  {afford.change_pct != null ? ` · ${afford.change_pct > 0 ? '+' : ''}${afford.change_pct}%` : ''}
+                  {afford.band ? ` · ${afford.band}` : ''}
+                </p>
+              </div>
+            )}
+            {copilot?.answer && (
+              <div className="rounded-2xl theme-card p-6">
+                <p className="text-[11px] font-bold uppercase tracking-[0.14em] theme-accent mb-2">
+                  Cash assistance copilot
+                </p>
+                <p className="text-sm theme-text-muted leading-relaxed line-clamp-5">{copilot.answer}</p>
+                {copilot.recommendation && (
+                  <p className="mt-3 text-sm font-semibold theme-text">
+                    Suggested adjustment: +{copilot.recommendation.band_low_pct}–{copilot.recommendation.band_high_pct}%
+                  </p>
+                )}
+              </div>
+            )}
+          </div>
+        </section>
+      )}
 
       {/* ── Browse staples ── */}
       <section className="border-t theme-border">

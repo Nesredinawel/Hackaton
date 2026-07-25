@@ -8,16 +8,19 @@ export default function LoginPage({ onSuccess }: { onSuccess: () => void }) {
   const [email, setEmail] = useState('admin@waga.com')
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
+  const [loading, setLoading] = useState(false)
   const [theme, setTheme] = useState<Theme>(() => resolveTheme())
 
-  const submit = (e: React.FormEvent) => {
+  const submit = async (e: React.FormEvent) => {
     e.preventDefault()
-    const result = adminSignIn(email, password)
+    setLoading(true)
+    setError('')
+    const result = await adminSignIn(email, password)
+    setLoading(false)
     if (result.ok) {
-      setError('')
       onSuccess()
     } else {
-      setError('Invalid email or password.')
+      setError(result.error === 'invalid_credentials' ? 'Invalid email or password.' : result.error)
     }
   }
 
@@ -40,12 +43,12 @@ export default function LoginPage({ onSuccess }: { onSuccess: () => void }) {
           </div>
           <h1 className="text-3xl font-bold tracking-tight">Operations console</h1>
           <p className="mt-3 text-muted-foreground">
-            Manage agents, subscriptions, enterprise pipeline, and payouts in one professional dashboard.
+            Manage agents, subscriptions, enterprise pipeline, and payouts against the live Waga API.
           </p>
           <ul className="mt-6 space-y-2 text-sm text-muted-foreground">
-            <li className="flex items-center gap-2"><span className="size-1.5 rounded-full bg-primary" /> Real-time platform analytics</li>
-            <li className="flex items-center gap-2"><span className="size-1.5 rounded-full bg-primary" /> Agent approval workflow</li>
-            <li className="flex items-center gap-2"><span className="size-1.5 rounded-full bg-primary" /> Enterprise lead tracking</li>
+            <li className="flex items-center gap-2"><span className="size-1.5 rounded-full bg-primary" /> Live API: waga-2h0w.onrender.com</li>
+            <li className="flex items-center gap-2"><span className="size-1.5 rounded-full bg-primary" /> Agent application approve / reject</li>
+            <li className="flex items-center gap-2"><span className="size-1.5 rounded-full bg-primary" /> Dashboard + redeem requests</li>
           </ul>
         </div>
 
@@ -57,7 +60,7 @@ export default function LoginPage({ onSuccess }: { onSuccess: () => void }) {
               </div>
               <div>
                 <CardTitle>Sign in</CardTitle>
-                <CardDescription>Waga Super Admin</CardDescription>
+                <CardDescription>Admin JWT login</CardDescription>
               </div>
             </div>
           </CardHeader>
@@ -78,11 +81,10 @@ export default function LoginPage({ onSuccess }: { onSuccess: () => void }) {
                 </div>
               </div>
               {error ? <p className="text-sm text-destructive">{error}</p> : null}
-              <Button type="submit" className="w-full" size="lg">Sign in to console</Button>
+              <Button type="submit" className="w-full" disabled={loading}>
+                {loading ? 'Signing in…' : 'Sign in'}
+              </Button>
             </form>
-            <p className="mt-4 text-center text-xs text-muted-foreground">
-              Demo · <strong>admin@waga.com</strong> / <strong>admin123</strong>
-            </p>
           </CardContent>
         </Card>
       </div>

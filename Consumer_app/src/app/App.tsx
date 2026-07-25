@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import type { Lang, NavScreen } from '@/data'
+import { hydrateLivePrices } from '@/data/live'
 import { applyTheme, resolveTheme, type Theme } from '@/app/theme'
 import Navbar from '@/features/navigation/components/Navbar'
 import Footer from '@/features/navigation/components/Footer'
@@ -9,11 +10,13 @@ export default function App() {
   const [lang, setLang] = useState<Lang>('en')
   const [screen, setScreen] = useState<NavScreen>({ id: 'home' })
   const [theme, setTheme] = useState<Theme>(() => resolveTheme())
+  const [liveReady, setLiveReady] = useState(false)
 
   useEffect(() => {
     const saved = localStorage.getItem('waga_lang') as Lang | null
     if (saved === 'en' || saved === 'am') setLang(saved)
     applyTheme(resolveTheme())
+    void hydrateLivePrices().finally(() => setLiveReady(true))
   }, [])
 
   const navigate = (next: NavScreen) => {
@@ -30,7 +33,7 @@ export default function App() {
   return (
     <div className="min-h-screen flex flex-col theme-bg" style={{ fontFamily: "'SpotifyMixUI','CircularSp','Helvetica Neue',Helvetica,Arial,sans-serif" }}>
       <Navbar lang={lang} theme={theme} onThemeChange={setTheme} onToggleLang={toggleLang} navigate={navigate} />
-      <main className="flex-1">
+      <main className="flex-1" key={liveReady ? 'live' : 'boot'}>
         <AppRoutes lang={lang} screen={screen} navigate={navigate} />
       </main>
       <Footer lang={lang} navigate={navigate} />
