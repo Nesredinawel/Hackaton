@@ -1,152 +1,481 @@
+import type { ReactNode } from 'react'
 import type { Lang, NavScreen, Published } from '@/data'
-import { IMG, CATEGORIES, MARKETS, getAreaById, getMarketsForArea, getAllLivePairsForArea, getP } from '@/data'
-import { LiveDot, SectionHeading, GreenBtn, CommodityCard, PriceChip } from '@/shared/components'
+import { COMMODITIES, MARKETS, getP, getMarketLeaderboard, getItemLeaderboard, IMG, PLANS, PRO_MONTHLY_PRICE, canAccess } from '@/data'
+import { LiveDot, Btn, ItemCard, ReportPriceCta, AgentBotCta, reportPriceCopy, agentBotCopy } from '@/shared/components'
 
-export default function HomePage({ lang, navigate, selectedAreaId }: { lang: Lang; navigate: (s: NavScreen) => void; selectedAreaId: string }) {
-  const area = getAreaById(selectedAreaId)
-  const areaMarkets = getMarketsForArea(selectedAreaId)
-  const livePairs = getAllLivePairsForArea(selectedAreaId)
-  const liveItems = livePairs.slice(0, 8)
-  const heroLive = livePairs.slice(0, 4)
+function heatColor(avg: number): string {
+  if (avg >= 100) return '#FFA42B'
+  if (avg >= 60) return '#FFA42B'
+  return '#1ED760'
+}
+
+function MedalBadge({ rank }: { rank: number }) {
+  if (rank === 0) return <span className="text-sm">🥇</span>
+  if (rank === 1) return <span className="text-sm">🥈</span>
+  if (rank === 2) return <span className="text-sm">🥉</span>
+  return (
+    <span className="w-5 h-5 rounded-full theme-surface-2 flex items-center justify-center text-[10px] font-bold theme-text-dim">
+      {rank + 1}
+    </span>
+  )
+}
+
+const display = { fontFamily: "'SpotifyMixUITitle','CircularSp','Helvetica Neue',Helvetica,Arial,sans-serif" } as const
+
+function ProPill({ lang }: { lang: Lang }) {
+  return (
+    <span className="ml-1.5 inline-flex px-1.5 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider bg-[var(--warning)] text-[#121212] align-middle">
+      {lang === 'en' ? 'Pro' : 'ፕሮ'}
+    </span>
+  )
+}
+
+function SectionHead({ eyebrow, title, subtitle, align = 'left' }: {
+  eyebrow?: string
+  title: string
+  subtitle?: string
+  align?: 'left' | 'center'
+}) {
+  return (
+    <div className={align === 'center' ? 'text-center max-w-lg mx-auto' : 'max-w-xl'}>
+      {eyebrow && (
+        <p className="text-[11px] font-bold uppercase tracking-[0.14em] theme-accent mb-2">{eyebrow}</p>
+      )}
+      <h2 className="theme-text text-2xl font-bold mb-2" style={display}>{title}</h2>
+      {subtitle && <p className="text-sm theme-text-muted leading-relaxed">{subtitle}</p>}
+    </div>
+  )
+}
+
+function InvolvementCard({ step, visual, icon, eyebrow, title, body, action, accent }: {
+  step: string
+  visual: string
+  icon: string
+  eyebrow: string
+  title: string
+  body: string
+  action: ReactNode
+  accent?: 'green' | 'amber' | 'blue'
+}) {
+  const accentStyles = {
+    green: { glow: 'rgba(30,215,96,0.35)', badge: 'bg-[#1ED760] text-[#121212]', pill: 'text-[#1ED760]', hover: 'hover:border-[#1ED760]/30' },
+    amber: { glow: 'rgba(255,164,43,0.35)', badge: 'bg-[#FFA42B] text-[#121212]', pill: 'text-[#FFA42B]', hover: 'hover:border-[#FFA42B]/30' },
+    blue: { glow: 'rgba(83,157,245,0.35)', badge: 'bg-[#539DF5] text-[#121212]', pill: 'text-[#539DF5]', hover: 'hover:border-[#539DF5]/30' },
+  }[accent ?? 'green']
 
   return (
-    <div>
-      {/* Hero */}
-      <section className="relative overflow-hidden" style={{ backgroundColor: '#1A1814', minHeight: 520 }}>
-        <img src={area?.image || IMG.heroMarket} alt="Ethiopian market" className="absolute inset-0 w-full h-full object-cover opacity-30" />
-        <div className="relative max-w-7xl mx-auto px-6 lg:px-10 py-20 lg:py-28">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
+    <article className={`group relative flex flex-col flex-1 min-w-0 rounded-2xl overflow-hidden theme-card theme-card-interactive ${accentStyles.hover}`}>
+      <div className="relative aspect-[16/10] overflow-hidden shrink-0">
+        <img src={visual} alt="" aria-hidden className="absolute inset-0 w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" />
+        <div className="absolute inset-0 theme-card-image-scrim" />
+        <div className="absolute inset-0 opacity-80 group-hover:opacity-100 transition-opacity duration-150" style={{ background: `radial-gradient(circle at 30% 100%, ${accentStyles.glow} 0%, transparent 60%)` }} />
+        <span className={`absolute top-3 left-3 inline-flex items-center justify-center w-7 h-7 rounded-full text-[11px] font-bold tabular-nums ${accentStyles.badge}`}>
+          {step}
+        </span>
+        <span className={`absolute top-3 right-3 text-[10px] font-bold uppercase tracking-[0.12em] px-2.5 py-1 rounded-full backdrop-blur-sm ${accentStyles.pill}`}
+          style={{ backgroundColor: 'color-mix(in srgb, var(--surface) 55%, transparent)' }}
+        >
+          {eyebrow}
+        </span>
+        <span className="absolute bottom-3 left-3 text-2xl drop-shadow-md">{icon}</span>
+      </div>
+
+      <div className="flex flex-col gap-2.5 p-4 lg:p-5">
+        <h3 className="text-base font-bold theme-text leading-snug" style={display}>{title}</h3>
+        <p className="text-[13px] theme-text-muted leading-snug line-clamp-3">{body}</p>
+        <div className="pt-1">{action}</div>
+      </div>
+    </article>
+  )
+}
+
+function PricingTeaserCard({ lang, navigate, plan }: {
+  lang: Lang
+  navigate: (s: NavScreen) => void
+  plan: typeof PLANS[number]
+}) {
+  const popular = plan.variant === 'popular'
+  const name = lang === 'am' ? plan.nameAm : plan.nameEn
+  const tagline = lang === 'am' ? plan.taglineAm : plan.taglineEn
+  const highlights = plan.features.filter(f => f.state !== 'no').slice(0, 4)
+
+  const cta =
+    plan.tier === 'public'
+      ? { label: lang === 'en' ? 'Browse staples' : 'ምግቦችን አስስ', action: () => navigate({ id: 'staples' }), variant: 'secondary' as const }
+      : plan.tier === 'professional'
+        ? { label: lang === 'en' ? 'Start trial' : 'ሙከራ ጀምር', action: () => navigate({ id: 'sign-up' }), variant: 'primary' as const }
+        : { label: lang === 'en' ? 'Talk to us' : 'አነጋግረን', action: () => navigate({ id: 'enterprise-enquiry' }), variant: 'secondary' as const }
+
+  return (
+    <div
+      className={`flex flex-col min-w-[260px] lg:min-w-0 lg:flex-1 snap-start rounded-2xl p-5 theme-card theme-card-interactive ${popular ? 'ring-2 ring-[#1ED760]' : ''}`}
+      style={popular ? { boxShadow: '0 8px 24px rgba(30,215,96,0.12)' } : undefined}
+    >
+      <div className="min-h-[28px] mb-3">
+        {popular && (
+          <span className="inline-flex px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider text-[#121212] bg-[#1ED760]">
+            {lang === 'en' ? 'Popular' : 'ተመራጭ'}
+          </span>
+        )}
+      </div>
+      <p className="text-sm font-bold theme-text mb-0.5">{name}</p>
+      <p className="text-2xl font-bold theme-text mb-4 tabular-nums leading-none" style={{ ...display, letterSpacing: '-0.03em' }}>
+        {tagline}
+      </p>
+      <ul className="space-y-2 mb-4">
+        {highlights.map(f => (
+          <li key={f.en} className="flex items-start gap-2 text-sm theme-text-muted">
+            <span className="theme-accent mt-0.5 shrink-0">✓</span>
+            <span>{lang === 'am' ? f.am : f.en}</span>
+          </li>
+        ))}
+      </ul>
+      <div className="mt-auto pt-1">
+        <Btn variant={cta.variant} size="md" fullWidth onClick={cta.action}>
+          {cta.label}
+        </Btn>
+      </div>
+    </div>
+  )
+}
+
+export default function HomePage({ lang, navigate }: { lang: Lang; navigate: (s: NavScreen) => void }) {
+  const totalLive = COMMODITIES.flatMap(c => MARKETS.map(m => getP(c.id, m.id)))
+    .filter(p => p.status === 'published').length
+
+  const marketBoard = getMarketLeaderboard().slice(0, 6)
+  const itemBoard = getItemLeaderboard()
+  const reportCopy = reportPriceCopy(lang)
+  const agentCopy = agentBotCopy(lang)
+  const mapUnlocked = canAccess('map').allowed
+  const defaultCommodityId = COMMODITIES[0]?.id ?? 'teff'
+  const defaultMarketId = MARKETS[0]?.id ?? 'merkato'
+
+  return (
+    <div className="theme-bg">
+      {/* ── Hero ── */}
+      <section className="relative isolate overflow-hidden min-h-[min(92vh,880px)] flex items-center justify-center">
+        <img
+          src={IMG.hero}
+          alt=""
+          aria-hidden
+          fetchPriority="high"
+          className="absolute inset-0 -z-10 w-full h-full object-cover object-center scale-105"
+        />
+        <div className="absolute inset-0 -z-10" style={{ background: 'var(--hero-scrim)' }} />
+        <div className="absolute inset-0 -z-10" style={{ background: 'var(--hero-vignette)' }} />
+        <div
+          className="absolute inset-x-0 bottom-0 -z-10 h-40"
+          style={{ background: 'var(--hero-fade)' }}
+        />
+
+        <div className="relative w-full max-w-3xl mx-auto px-6 lg:px-10 py-28 lg:py-32 text-center">
+          <p className="text-[11px] font-bold uppercase tracking-[0.14em] theme-accent mb-5">
+            {lang === 'en' ? 'Addis Ababa · Live index' : 'አዲስ አበባ · ቀጥታ ኢንዴክስ'}
+          </p>
+
+          <div className="hero-badge inline-flex items-center gap-2 px-4 py-2 rounded-full text-[11px] font-bold theme-accent mb-8">
+            <LiveDot />
+            {totalLive} {lang === 'en' ? 'live prices' : 'ቀጥታ ዋጋዎች'}
+          </div>
+
+          <h1
+            className="theme-text leading-[1.05] mb-6 mx-auto max-w-2xl"
+            style={{ ...display, fontSize: 'clamp(40px,6.5vw,72px)', fontWeight: 700, letterSpacing: '-0.04em' }}
+          >
+            {lang === 'en' ? <>Food prices,<br />right now.</> : <>የምግብ ዋጋዎች,<br />አሁን።</>}
+          </h1>
+
+          <p className="theme-text-muted text-base lg:text-lg leading-relaxed mb-10 max-w-md mx-auto">
+            {lang === 'en'
+              ? 'Audited 72-hour index for staple foods across 30 Addis Ababa markets.'
+              : 'በ30 አዲስ አበባ ገበያዎች ተፈጻሚ የምግብ ዋጋ ኢንዴክስ።'}
+          </p>
+
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
+            <Btn
+              variant="primary"
+              size="lg"
+              onClick={() => navigate({ id: 'staples' })}
+              className="w-full sm:w-auto sm:min-w-[168px]"
+            >
+              {lang === 'en' ? 'Browse staples' : 'ምግቦችን አስስ'}
+            </Btn>
+            <Btn
+              variant="ghost"
+              size="lg"
+              onClick={() => navigate({ id: 'map' })}
+              className="w-full sm:w-auto sm:min-w-[168px]"
+            >
+              {lang === 'en' ? 'Explore map' : 'ካርታ አስስ'}
+              {!mapUnlocked && <ProPill lang={lang} />}
+            </Btn>
+          </div>
+
+          <div className="hero-stats inline-flex flex-wrap items-center justify-center gap-x-5 gap-y-2 mt-12 px-6 py-3 rounded-full text-xs theme-text-muted">
+            <span><span className="font-bold theme-text tabular-nums">{MARKETS.length}</span> {lang === 'en' ? 'markets' : 'ገበያዎች'}</span>
+            <span className="hidden sm:inline w-1 h-1 rounded-full bg-[var(--text-dim)] opacity-60" aria-hidden />
+            <span><span className="font-bold theme-text tabular-nums">{COMMODITIES.length}</span> {lang === 'en' ? 'staples' : 'ምግቦች'}</span>
+            <span className="hidden sm:inline w-1 h-1 rounded-full bg-[var(--text-dim)] opacity-60" aria-hidden />
+            <span>{lang === 'en' ? 'Addis Ababa' : 'አዲስ አበባ'}</span>
+            <span className="hidden sm:inline w-1 h-1 rounded-full bg-[var(--text-dim)] opacity-60" aria-hidden />
+            <span className="theme-text-dim">{lang === 'en' ? 'Gaps shown honestly' : 'ክፍተቶች በግልጽ'}</span>
+          </div>
+        </div>
+      </section>
+
+      {/* ── Browse staples ── */}
+      <section className="border-t theme-border">
+        <div className="max-w-6xl mx-auto px-6 lg:px-10 py-20 lg:py-28">
+          <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-5 mb-10 lg:mb-12">
+            <SectionHead
+              eyebrow={lang === 'en' ? 'Browse' : 'አስስ'}
+              title={lang === 'en' ? 'Staple foods' : 'አስፈላጊ ምግቦች'}
+              subtitle={lang === 'en' ? 'Compare live prices across every Addis market.' : 'በአዲስ አበባ ገበያዎች ቀጥታ ዋጋዎችን ያወዳድሩ።'}
+            />
+            <Btn
+              variant="secondary"
+              size="md"
+              onClick={() => navigate({ id: 'staples' })}
+              className="shrink-0 w-full sm:w-auto"
+            >
+              {lang === 'en' ? 'View all staples' : 'ሁሉንም ምግቦች'}
+            </Btn>
+          </div>
+
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 sm:gap-4 items-stretch">
+            {COMMODITIES.map(c => {
+              const prices = MARKETS.map(m => getP(c.id, m.id)).filter((p): p is Published => p.status === 'published')
+              const avg = prices.length > 0 ? Math.round(prices.reduce((s, p) => s + p.price, 0) / prices.length) : 0
+              const min = prices.length > 0 ? Math.min(...prices.map(p => p.price)) : 0
+              const max = prices.length > 0 ? Math.max(...prices.map(p => p.price)) : 0
+
+              return (
+                <ItemCard
+                  key={c.id}
+                  image={c.img}
+                  emoji={c.emoji}
+                  title={lang === 'am' ? c.am : c.en}
+                  unit={lang === 'am' ? c.unitAm : c.unit}
+                  avg={avg}
+                  min={min}
+                  max={max}
+                  liveCount={prices.length}
+                  totalMarkets={MARKETS.length}
+                  noDataLabel={lang === 'en' ? 'No data yet' : 'ገና ዳታ የለም'}
+                  onClick={() => navigate({ id: 'commodity-overview', commodityId: c.id })}
+                />
+              )
+            })}
+          </div>
+        </div>
+      </section>
+
+      {/* ── Leaderboards ── */}
+      <section className="border-y theme-border">
+        <div className="max-w-6xl mx-auto px-6 lg:px-10 py-20 lg:py-24">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 lg:gap-16">
             <div>
-              <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-bold mb-6"
-                style={{ backgroundColor: 'rgba(29,122,78,0.3)', color: '#6ee7b7', border: '1px solid rgba(110,231,183,0.3)' }}>
-                <LiveDot />{lang === 'en' ? `${livePairs.length} live prices in ${area?.en || 'Ethiopia'}` : `${livePairs.length} ቀጥታ ዋጋዎች`}
+              <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4 mb-8">
+                <SectionHead
+                  eyebrow={lang === 'en' ? 'Markets' : 'ገበያዎች'}
+                  title={lang === 'en' ? 'Top by basket price' : 'በቅርጫት ዋጋ'}
+                />
+                <Btn
+                  variant="secondary"
+                  size="md"
+                  onClick={() => navigate({ id: 'map' })}
+                  className="shrink-0"
+                >
+                  {lang === 'en' ? 'Explore map' : 'ካርታ አስስ'}
+                  {!mapUnlocked && <ProPill lang={lang} />}
+                </Btn>
               </div>
-              <h1 className="text-white leading-none mb-4"
-                style={{ fontFamily: "'Clash Display','Inter',sans-serif", fontSize: 'clamp(40px,6vw,72px)', fontWeight: 700, letterSpacing: '-0.04em' }}>
-                {lang === 'en' ? <>Market prices,<br />right now.</> : <>የገበያ ዋጋዎች,<br />አሁን።</>}
-              </h1>
-              <p className="text-white/60 text-base leading-relaxed mb-8 max-w-md">
-                {lang === 'en'
-                  ? `Food, electronics, clothing, household items, health, and transport — tracked in real time across ${area?.en || "Ethiopia's key markets"}.`
-                  : 'ምግብ፣ ኤሌክትሮኒክስ፣ ልብስ፣ የቤት እቃዎች፣ ጤናና ትራንስፖርት — ቀጥታ ሪፖርት።'}
-              </p>
-              <div className="flex flex-wrap gap-3">
-                <GreenBtn label={lang === 'en' ? 'Browse all prices →' : 'ሁሉም ዋጋዎች →'} onClick={() => navigate({ id: 'categories' })} size="lg" />
-                <button onClick={() => navigate({ id: 'map' })}
-                  className="px-6 py-3.5 rounded-xl text-sm font-semibold text-white/70 hover:text-white border border-white/20 hover:border-white/40 transition-colors">
-                  {lang === 'en' ? '🗺️ Browse by map' : '🗺️ በካርታ ተቃኝ'}
-                </button>
-              </div>
-            </div>
-            <div className="hidden lg:grid grid-cols-2 gap-3">
-              {heroLive.map(({ c, m, p }) => (
-                <button key={`${c.id}-${m.id}`} onClick={() => navigate({ id: 'price-detail', commodityId: c.id, marketId: m.id })}
-                  className="text-left p-4 rounded-2xl border border-white/10 hover:border-white/25 transition-all"
-                  style={{ backgroundColor: 'rgba(255,255,255,0.07)', backdropFilter: 'blur(12px)' }}>
-                  <div className="flex items-center gap-2 mb-3">
-                    <div className="w-8 h-8 rounded-lg overflow-hidden flex-shrink-0"><img src={c.img} alt={c.en} className="w-full h-full object-cover" /></div>
-                    <div>
-                      <p className="text-white text-sm font-semibold leading-tight">{lang === 'am' ? c.am : c.en}</p>
-                      <p className="text-white/50 text-xs">📍 {lang === 'am' ? m.am : m.en}</p>
+              <div className="rounded-2xl overflow-hidden theme-card">
+                {marketBoard.map((entry, i) => (
+                  <button
+                    key={entry.market.id}
+                    onClick={() => navigate({ id: 'map' })}
+                    className={`w-full flex items-center gap-3 px-5 py-4 text-left transition-colors duration-100 hover:bg-[var(--surface-2)] ${i < marketBoard.length - 1 ? 'border-b theme-border' : ''}`}
+                  >
+                    <MedalBadge rank={entry.rank} />
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-bold theme-text truncate">{lang === 'am' ? entry.market.am : entry.market.en}</p>
+                      <p className="text-[11px] theme-text-dim">{entry.live}/5 {lang === 'en' ? 'live' : 'ቀጥታ'}</p>
                     </div>
-                  </div>
-                  <p className="text-white font-bold leading-none" style={{ fontFamily: "'Clash Display','Inter',sans-serif", fontSize: 28 }}>{(p as Published).price}</p>
-                  <p className="text-white/40 text-xs mt-0.5 mb-1.5">birr / {lang === 'am' ? c.unitAm : c.unit}</p>
-                  <div className="flex items-center gap-1"><LiveDot /><span className="text-white/40 text-xs">{(p as Published).freshness}</span></div>
-                </button>
-              ))}
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* Live strip */}
-      <section className="border-b border-[#E8E4DC] bg-white">
-        <div className="max-w-7xl mx-auto px-6 lg:px-10 py-5">
-          <div className="flex items-center gap-4">
-            <div className="flex items-center gap-2 flex-shrink-0">
-              <LiveDot size="md" />
-              <div>
-                <span className="text-xs font-bold text-[#1A1814] uppercase tracking-widest block">{lang === 'en' ? 'Live Now' : 'አሁን'}</span>
-                <span className="text-[10px] text-[#9C9590]">📍 {area ? (lang === 'am' ? area.am : area.en) : 'Ethiopia'}</span>
+                    <span
+                      className="w-8 h-8 rounded-full flex items-center justify-center text-[10px] font-bold text-[#121212] tabular-nums"
+                      style={{ backgroundColor: heatColor(entry.avg) }}
+                    >
+                      {entry.avg}
+                    </span>
+                  </button>
+                ))}
               </div>
             </div>
-            <div className="flex gap-3 overflow-x-auto pb-1 flex-1" style={{ scrollbarWidth: 'none' }}>
-              {liveItems.length > 0 ? liveItems.map(({ c, m }) => (
-                <PriceChip key={`${c.id}-${m.id}`} commodityId={c.id} marketId={m.id} lang={lang}
-                  onClick={() => navigate({ id: 'price-detail', commodityId: c.id, marketId: m.id })} />
-              )) : (
-                <p className="text-sm text-[#9C9590] py-2">{lang === 'en' ? 'No live prices in this area yet.' : 'በዚህ አካባቢ ምንም ቀጥታ ዋጋዎች የሉም።'}</p>
-              )}
-            </div>
-          </div>
-        </div>
-      </section>
 
-      {/* Category grid */}
-      <section className="max-w-7xl mx-auto px-6 lg:px-10 py-20">
-        <SectionHeading label="Browse by Category" am="ምድብ ይፈልጉ" lang={lang}
-          action={lang === 'en' ? 'All categories' : 'ሁሉም ምድቦች'} onAction={() => navigate({ id: 'categories' })} />
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
-          {CATEGORIES.map(cat => {
-            const liveCount = cat.items.filter(id => areaMarkets.some(m => getP(id, m.id).status === 'published')).length
-            return (
-              <button key={cat.id} onClick={() => navigate({ id: 'category-detail', categoryId: cat.id })}
-                className="group relative text-left rounded-2xl overflow-hidden border border-[#E8E4DC] card-hover"
-                style={{ boxShadow: '0 1px 4px rgba(0,0,0,0.04)' }}>
-                <div className="aspect-square overflow-hidden bg-[#F1EFE9]">
-                  <img src={cat.img} alt={cat.en} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" />
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-black/10" />
-                </div>
-                <div className="absolute inset-0 flex flex-col justify-end p-3">
-                  <span className="text-lg mb-1">{cat.emoji}</span>
-                  <p className="text-xs font-bold text-white leading-tight">{lang === 'am' ? cat.am : cat.en}</p>
-                  <div className="flex items-center gap-1 mt-1">
-                    <LiveDot />
-                    <span className="text-xs text-green-300 font-semibold">{liveCount} live</span>
-                  </div>
-                </div>
-              </button>
-            )
-          })}
-        </div>
-      </section>
-
-      {/* Featured prices */}
-      <section style={{ backgroundColor: '#F1EFE9', borderTop: '1px solid #E8E4DC', borderBottom: '1px solid #E8E4DC' }}>
-        <div className="max-w-7xl mx-auto px-6 lg:px-10 py-20">
-          <SectionHeading label="Featured Prices" am="ዋና ዋና ዋጋዎች" lang={lang}
-            action={lang === 'en' ? 'See all →' : 'ሁሉም →'} onAction={() => navigate({ id: 'categories' })} />
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-            {livePairs.slice(0, 3).map(({ c, m }) => (
-              <CommodityCard key={`${c.id}-${m.id}`} commodityId={c.id} marketId={m.id} lang={lang}
-                onClick={() => navigate({ id: 'price-detail', commodityId: c.id, marketId: m.id })} />
-            ))}
-            {livePairs.length === 0 && (
-              <div className="col-span-3 text-center py-10">
-                <p className="text-[#9C9590]">{lang === 'en' ? 'No featured prices in this area.' : 'በዚህ አካባቢ ምንም ዋጋዎች የሉም።'}</p>
-              </div>
-            )}
-          </div>
-        </div>
-      </section>
-
-      {/* Map CTA */}
-      <section className="relative overflow-hidden" style={{ backgroundColor: '#1D7A4E' }}>
-        <img src={IMG.africaStreet} alt="market" className="absolute inset-0 w-full h-full object-cover opacity-15" />
-        <div className="relative max-w-7xl mx-auto px-6 lg:px-10 py-16">
-          <div className="flex flex-col lg:flex-row items-center justify-between gap-8">
             <div>
-              <h2 className="text-white text-3xl font-bold mb-2"
-                style={{ fontFamily: "'Clash Display','Inter',sans-serif", letterSpacing: '-0.03em' }}>
-                {lang === 'en' ? 'Explore prices across Ethiopia' : 'በኢትዮጵያ ዋጋዎችን ያስሱ'}
-              </h2>
-              <p className="text-white/60 text-sm mt-1">{lang === 'en' ? 'Browse 8 cities and 14+ markets on the interactive map.' : 'በንግግር ካርታ 8 ከተማዎች እና 14+ ገበያዎች ያስሱ።'}</p>
+              <div className="mb-8">
+                <SectionHead
+                  eyebrow={lang === 'en' ? 'Commodities' : 'ሸቀጦች'}
+                  title={lang === 'en' ? 'Items by avg price' : 'በአማካይ ዋጋ'}
+                />
+              </div>
+              <div className="rounded-2xl overflow-hidden theme-card">
+                {itemBoard.map((entry, i) => (
+                  <button
+                    key={entry.commodity.id}
+                    onClick={() => navigate({ id: 'commodity-overview', commodityId: entry.commodity.id })}
+                    className={`w-full flex items-center gap-3 px-5 py-4 text-left transition-colors duration-100 hover:bg-[var(--surface-2)] ${i < itemBoard.length - 1 ? 'border-b theme-border' : ''}`}
+                  >
+                    <MedalBadge rank={entry.rank} />
+                    <span className="text-lg flex-shrink-0">{entry.commodity.emoji}</span>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-bold theme-text">{lang === 'am' ? entry.commodity.am : entry.commodity.en}</p>
+                      <p className="text-[11px] theme-text-dim tabular-nums">{entry.min}–{entry.max} · {entry.live}/{MARKETS.length}</p>
+                    </div>
+                    <p className="text-base font-bold theme-text flex-shrink-0 tabular-nums" style={display}>
+                      {entry.avg} <span className="text-[10px] font-medium theme-text-muted">birr</span>
+                    </p>
+                  </button>
+                ))}
+              </div>
             </div>
-            <button onClick={() => navigate({ id: 'map' })}
-              className="flex-shrink-0 px-8 py-4 rounded-xl text-base font-bold text-[#1D7A4E] bg-white hover:bg-[#F8F7F4] transition-colors shadow-lg">
-              🗺️ {lang === 'en' ? 'Open Map →' : 'ካርታ ክፍት →'}
-            </button>
+          </div>
+        </div>
+      </section>
+
+      {/* ── How it works ── */}
+      <section className="max-w-6xl mx-auto px-6 lg:px-10 py-20 lg:py-24">
+        <SectionHead
+          align="center"
+          eyebrow={lang === 'en' ? 'Methodology' : 'ዘዴ'}
+          title={lang === 'en' ? 'How it works' : 'እንዴት ይሰራል'}
+          subtitle={lang === 'en' ? 'Validated prices. No estimates. Gaps shown honestly.' : 'የተረጋገጡ ዋጋዎች። ግምት የለም።'}
+        />
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-12">
+          {[
+            { n: '01', en: 'Open Telegram and register as a field agent.', am: 'ቴሌግራም ክፈት እና እንደ ሜዳ ወኪል ይመዝገቡ።' },
+            { n: '02', en: 'Report prices from your market in ~5 seconds.', am: 'ከገበያዎ ዋጋ በ~5 ሰኮንድ ዘግቡ።' },
+            { n: '03', en: '3+ verified reports in 72 hours → published.', am: '72 ሰዓት ውስጥ 3+ ሪፖርቶች → ይታያል።' },
+          ].map(s => (
+            <div key={s.n} className="theme-card rounded-2xl p-6 lg:p-7">
+              <span className="inline-flex w-9 h-9 rounded-full items-center justify-center text-[11px] font-bold text-[#121212] bg-[#1ED760] mb-4">
+                {s.n}
+              </span>
+              <p className="text-sm theme-text-muted leading-relaxed">{lang === 'am' ? s.am : s.en}</p>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* ── Pricing ── */}
+      <section className="border-y theme-border theme-surface-muted">
+        <div className="max-w-6xl mx-auto px-6 lg:px-10 py-20 lg:py-24">
+          <div className="flex flex-col lg:flex-row lg:items-end lg:justify-between gap-6 mb-10">
+            <SectionHead
+              eyebrow={lang === 'en' ? 'Pricing' : 'ዋጋ'}
+              title={lang === 'en' ? 'Simple, honest plans' : 'ቀላል፣ ግልጽ ዕቅዶች'}
+              subtitle={lang === 'en' ? `Public is free forever. Professional from $${PRO_MONTHLY_PRICE}/month.` : `ሕዝባዊ ለዘላለም ነጻ። ፕሮፌሽናል ከ$${PRO_MONTHLY_PRICE}/ወር።`}
+            />
+            <Btn variant="secondary" size="md" onClick={() => navigate({ id: 'pricing' })} className="shrink-0 self-start lg:self-auto">
+              {lang === 'en' ? 'Compare all features' : 'ሁሉንም ባህሪያት አወዳድር'}
+            </Btn>
+          </div>
+          <div className="flex flex-row gap-4 overflow-x-auto snap-x snap-mandatory pb-2 lg:overflow-visible lg:pb-0">
+            {PLANS.map(plan => (
+              <PricingTeaserCard key={plan.tier} lang={lang} navigate={navigate} plan={plan} />
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ── Get involved ── */}
+      <section className="border-t theme-border">
+        <div className="max-w-6xl mx-auto px-6 lg:px-10 py-20 lg:py-28">
+          <SectionHead
+            align="center"
+            eyebrow={lang === 'en' ? 'Get involved' : 'ተሳትፍ'}
+            title={lang === 'en' ? 'Three ways to use Waga' : 'ዋጋን ለመጠቀም 3 መንገዶች'}
+            subtitle={lang === 'en' ? 'Agents report prices. Earn rewards, or unlock deeper data for your organisation.' : 'ወኪሎች ዋጋ ይሰጣሉ። ገቢ ያግኙ፣ ወይም ተጨማሪ ዳታ ይክፈቱ።'}
+          />
+          <div className="mt-12 flex flex-row items-stretch gap-3 sm:gap-4 lg:gap-5">
+            <InvolvementCard
+              step="01"
+              visual={IMG.hero}
+              icon="📱"
+              accent="green"
+              eyebrow={lang === 'en' ? 'Contribute' : 'አስተዋጽዖ'}
+              title={lang === 'en' ? 'Report a price' : 'ዋጋ ዘግብ'}
+              body={reportCopy.bandBody}
+              action={
+                <ReportPriceCta
+                  lang={lang}
+                  commodityId={defaultCommodityId}
+                  marketId={defaultMarketId}
+                  size="md"
+                  fullWidth
+                />
+              }
+            />
+            <InvolvementCard
+              step="02"
+              visual={COMMODITIES[0]?.img ?? IMG.marketA}
+              icon="🎯"
+              accent="amber"
+              eyebrow={lang === 'en' ? 'Earn' : 'ገቢ'}
+              title={lang === 'en' ? 'Become an agent' : 'ወኪል ሁን'}
+              body={agentCopy.bandBody}
+              action={
+                <AgentBotCta lang={lang} size="md" fullWidth variant="secondary" />
+              }
+            />
+            <InvolvementCard
+              step="03"
+              visual={COMMODITIES[3]?.img ?? IMG.marketB}
+              icon="📈"
+              accent="blue"
+              eyebrow={lang === 'en' ? 'Depth' : 'ጥልቀት'}
+              title={lang === 'en' ? 'Pro & Enterprise' : 'ፕሮ & ኢንተርፕራይዝ'}
+              body={lang === 'en' ? 'History, source mix, export, and API for organisations.' : 'ታሪክ፣ ምንጭ፣ ማውጣት እና ኤ፲አይ ለድርጅቶች።'}
+              action={
+                <Btn variant="secondary" size="md" fullWidth onClick={() => navigate({ id: 'pricing' })}>
+                  {lang === 'en' ? 'See pricing' : 'ዋጋ እይ'}
+                </Btn>
+              }
+            />
+          </div>
+        </div>
+      </section>
+
+      {/* ── Bottom CTA band ── */}
+      <section className="border-t theme-border">
+        <div className="max-w-6xl mx-auto px-6 lg:px-10 py-16 lg:py-20">
+          <div className="rounded-2xl theme-card px-8 py-10 lg:px-12 lg:py-12 flex flex-col lg:flex-row lg:items-center lg:justify-between gap-8">
+            <div className="max-w-lg">
+              <p className="text-[11px] font-bold uppercase tracking-[0.14em] theme-accent mb-2">
+                {lang === 'en' ? 'Start free' : 'በነጻ ጀምር'}
+              </p>
+              <h2 className="theme-text text-2xl font-bold mb-2" style={display}>
+                {lang === 'en' ? 'Check any price today. Upgrade when you need depth.' : 'የዛሬን ዋጋ ይመልከቱ። ጥልቀት ሲፈልጉ ያሳድጉ።'}
+              </h2>
+              <p className="text-sm theme-text-muted leading-relaxed">
+                {lang === 'en' ? 'Public access is free forever. Professional plans from $29/month.' : 'ሕዝባዊ መዳረሻ ለዘላለም ነጻ። ፕሮፌሽናል ከ$29/ወር።'}
+              </p>
+            </div>
+            <div className="flex flex-col sm:flex-row gap-3 shrink-0 w-full lg:w-auto">
+              <Btn
+                variant="primary"
+                size="lg"
+                onClick={() => navigate({ id: 'staples' })}
+                className="sm:min-w-[160px]"
+              >
+                {lang === 'en' ? 'Browse staples' : 'ምግቦችን አስስ'}
+              </Btn>
+              <Btn variant="secondary" size="lg" onClick={() => navigate({ id: 'sign-up' })} className="sm:min-w-[160px]">
+                {lang === 'en' ? 'Start Pro trial' : 'ፕሮ ሙከራ ጀምር'}
+              </Btn>
+            </div>
           </div>
         </div>
       </section>

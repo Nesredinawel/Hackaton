@@ -1,212 +1,458 @@
-import { useState, useMemo } from 'react'
-import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet'
-import L from 'leaflet'
-import type { Lang, NavScreen, Area } from '@/data'
-import { REGIONS, ALL_AREAS, getMarketsForArea } from '@/data'
-import { getAreaById } from '@/data'
+import { useState, useMemo, useEffect } from 'react'
+import { MapContainer, TileLayer, useMap, ZoomControl } from 'react-leaflet'
+import type { Lang, NavScreen, Published } from '@/data'
+import {
+  COMMODITIES,
+  MARKETS,
+  getP,
+  getMarketLeaderboard,
+  getMarketHeatPoints,
+  heatIntensityColor,
+  canAccess,
+  PRO_MONTHLY_PRICE,
+} from '@/data'
+import { useTheme } from '@/app/theme'
+import { LiveDot, ReportPriceCta, Btn } from '@/shared/components'
+import MarketHeatmapLayer from '@/features/map/components/MarketHeatmapLayer'
 import 'leaflet/dist/leaflet.css'
 
-function CityIcon({ selected, hovered }: { selected?: boolean; hovered?: boolean }) {
-  const size = selected ? 28 : hovered ? 22 : 18
+const ADDIS_CENTER: [number, number] = [9.019, 38.755]
+const display = { fontFamily: "'SpotifyMixUITitle','CircularSp','Helvetica Neue',Helvetica,Arial,sans-serif" } as const
+
+function FitBounds() {
+  const map = useMap()
+  useEffect(() => {
+    const bounds = MARKETS.map(m => [m.lat, m.lng] as [number, number])
+    map.fitBounds(bounds, { padding: [40, 40], maxZoom: 13 })
+  }, [map])
+  return null
+}
+
+function FlyToMarket({ lat, lng }: { lat: number; lng: number }) {
+  const map = useMap()
+  useEffect(() => {
+    map.flyTo([lat, lng], 14, { duration: 0.75 })
+  }, [lat, lng, map])
+  return null
+}
+
+function MedalBadge({ rank }: { rank: number }) {
+  if (rank === 0) return <span className="text-sm">🥇</span>
+  if (rank === 1) return <span className="text-sm">🥈</span>
+  if (rank === 2) return <span className="text-sm">🥉</span>
   return (
-    <div style={{ width: size, height: size, position: 'relative' }}>
-      {selected && (
-        <div className="absolute inset-0 rounded-full bg-[#1D7A4E] opacity-20 animate-ping" />
-      )}
-      <div className={`absolute inset-0 rounded-full border-2 ${selected ? 'border-[#1D7A4E] bg-[#1D7A4E]' : hovered ? 'border-[#1D7A4E] bg-white' : 'border-[#9C9590] bg-white'}`}
-        style={{ boxShadow: selected ? '0 0 0 4px rgba(29,122,78,0.2)' : '0 2px 8px rgba(0,0,0,0.15)' }}>
-        {selected && <div className="absolute inset-0 flex items-center justify-center"><div className="w-2 h-2 rounded-full bg-white" /></div>}
+    <span className="w-5 h-5 rounded-full theme-surface-2 flex items-center justify-center text-[10px] font-bold theme-text-dim">
+      {rank + 1}
+    </span>
+  )
+}
+
+function MapPreview({ theme, heatPoints, interactive }: {
+  theme: 'dark' | 'light'
+  heatPoints: [number, number, number][]
+  interactive?: boolean
+}) {
+  const tileUrl = theme === 'light'
+    ? 'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png'
+    : 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png'
+
+  return (
+    <MapContainer
+      center={ADDIS_CENTER}
+      zoom={12}
+      className="w-full h-full z-0"
+      zoomControl={false}
+      attributionControl={false}
+      dragging={interactive}
+      scrollWheelZoom={interactive}
+      doubleClickZoom={interactive}
+      touchZoom={interactive}
+      boxZoom={interactive}
+      keyboard={interactive}
+      style={{ background: 'var(--map-bg)' }}
+    >
+      <TileLayer url={tileUrl} />
+      <FitBounds />
+      {heatPoints.length > 0 && <MarketHeatmapLayer points={heatPoints} active theme={theme} />}
+    </MapContainer>
+  )
+}
+
+function MapPaywall({ lang, navigate, theme, heatPoints }: {
+  lang: Lang
+  navigate: (s: NavScreen) => void
+  theme: 'dark' | 'light'
+  heatPoints: [number, number, number][]
+}) {
+  return (
+    <div className="flex flex-col lg:flex-row" style={{ height: 'calc(100vh - 64px)' }}>
+      <div className="flex-1 relative theme-map-bg overflow-hidden">
+        <div className="absolute inset-0 scale-[1.02] blur-[6px] opacity-70 pointer-events-none">
+          <MapPreview theme={theme} heatPoints={heatPoints} />
+        </div>
+        <div className="absolute inset-0 bg-[var(--overlay-scrim)]" />
+
+        <div className="absolute inset-0 flex items-center justify-center p-6 z-10">
+          <div className="w-full max-w-md theme-modal rounded-2xl p-8 text-center border theme-border shadow-2xl">
+            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider theme-badge-warning mb-4">
+              Professional
+            </span>
+            <span className="text-4xl block mb-4">🗺️</span>
+            <h1 className="theme-text text-2xl font-bold mb-2" style={{ ...display, letterSpacing: '-0.03em' }}>
+              {lang === 'en' ? 'Explore map' : 'ካርታ አስስ'}
+            </h1>
+            <p className="text-sm theme-text-muted leading-relaxed mb-6">
+              {lang === 'en'
+                ? 'Interactive heatmap across 30 markets, area leaderboard, and cross-market browsing — included on Professional.'
+                : 'በ30 ገበያዎች ሂትማፕ፣ የአካባቢ ሊደርቦርድ እና ተጨማሪ መረጃ — በፕሮፌሽናል ውስጥ።'}
+            </p>
+            <Btn variant="primary" size="lg" fullWidth onClick={() => navigate({ id: 'sign-up' })}>
+              {lang === 'en' ? 'Start Professional trial →' : 'ፕሮፌሽናል ሙከራ ጀምር →'}
+            </Btn>
+            <button
+              onClick={() => navigate({ id: 'pricing' })}
+              className="mt-4 text-sm theme-text-muted hover:theme-accent transition-colors"
+            >
+              {lang === 'en' ? `From $${PRO_MONTHLY_PRICE}/mo · See plans` : `ከ$${PRO_MONTHLY_PRICE}/ወር · ዕቅዶች`}
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <div className="w-full lg:w-[360px] border-t lg:border-t-0 lg:border-l theme-border theme-surface flex flex-col flex-shrink-0">
+        <div className="p-6 border-b theme-border">
+          <p className="text-[10px] font-bold uppercase tracking-widest theme-accent mb-1">Professional</p>
+          <h2 className="text-sm font-bold theme-text mb-2">{lang === 'en' ? 'What you unlock' : 'ምን ይከፈትዎታል'}</h2>
+          <ul className="space-y-2.5">
+            {[
+              lang === 'en' ? 'Price heatmap by area' : 'በአካባቢ የዋጋ ሂትማፕ',
+              lang === 'en' ? 'Market leaderboard' : 'የገበያ ሊደርቦርድ',
+              lang === 'en' ? 'Tap any market for live prices' : 'ቀጥታ ዋጋዎች',
+              lang === 'en' ? 'Plus history, export & more' : 'ታሪክ፣ ማውጫ እና ተጨማሪ',
+            ].map(item => (
+              <li key={item} className="flex items-center gap-2 text-sm theme-text-muted">
+                <span className="theme-accent text-xs">✓</span>
+                {item}
+              </li>
+            ))}
+          </ul>
+        </div>
+        <div className="p-6 mt-auto">
+          <Btn variant="secondary" size="md" fullWidth onClick={() => navigate({ id: 'home' })}>
+            {lang === 'en' ? 'Back to home' : 'ወደ ቤት'}
+          </Btn>
+        </div>
       </div>
     </div>
   )
 }
 
-function MapController({ center, zoom }: { center: [number, number]; zoom: number }) {
-  const map = useMap()
-  useMemo(() => {
-    map.setView(center, zoom, { animate: true, duration: 0.8 })
-  }, [center, zoom, map])
-  return null
-}
-
-export default function MapBrowserPage({ lang, selectedAreaId, onSelectArea, navigate }: {
+export default function MapBrowserPage({ lang, navigate }: {
   lang: Lang
-  selectedAreaId: string
-  onSelectArea: (areaId: string) => void
   navigate: (s: NavScreen) => void
 }) {
-  const [hoveredArea, setHoveredArea] = useState<string | null>(null)
-  const [sidebarOpen, setSidebarOpen] = useState(true)
+  const mapAccess = canAccess('map')
+  const theme = useTheme()
+  const heatPoints = useMemo(
+    () => getMarketHeatPoints().map(p => [p.lat, p.lng, p.intensity] as [number, number, number]),
+    [],
+  )
 
-  const selectedArea = getAreaById(selectedAreaId)
-  const center: [number, number] = selectedArea ? [selectedArea.lat, selectedArea.lng] : [9.025, 38.747]
-  const zoom = selectedArea ? selectedArea.zoom : 6
-
-  const handleSelect = (areaId: string) => {
-    onSelectArea(areaId)
+  if (!mapAccess.allowed) {
+    return <MapPaywall lang={lang} navigate={navigate} theme={theme} heatPoints={heatPoints} />
   }
 
   return (
-    <div className="relative h-[calc(100vh-64px)] flex">
-      {/* Sidebar */}
-      <div className={`${sidebarOpen ? 'w-96' : 'w-0'} transition-all duration-300 overflow-hidden bg-white border-r border-[#E8E4DC] flex-shrink-0 z-[1000]`}>
-        <div className="w-96 h-full flex flex-col">
-          {/* Header */}
-          <div className="p-6 border-b border-[#E8E4DC]">
-            <div className="flex items-center justify-between mb-2">
-              <h2 className="text-lg font-bold text-[#1A1814]" style={{ fontFamily: "'Clash Display','Inter',sans-serif", letterSpacing: '-0.03em' }}>
-                {lang === 'en' ? 'Browse by City' : 'ከከተማ በድጋፍ'}
-              </h2>
-              <button onClick={() => setSidebarOpen(false)} className="w-8 h-8 rounded-lg flex items-center justify-center text-[#9C9590] hover:bg-[#F1EFE9] transition-colors">
-                <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M4 4l8 8M12 4l-8 8" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" /></svg>
-              </button>
-            </div>
-            <p className="text-sm text-[#9C9590]">
-              {lang === 'en' ? `${ALL_AREAS.length} cities · ${REGIONS.length} regions` : `${ALL_AREAS.length} ከተማዎች · ${REGIONS.length} ክልሎች`}
-            </p>
-          </div>
+    <MapBrowserUnlocked lang={lang} navigate={navigate} theme={theme} heatPoints={heatPoints} />
+  )
+}
 
-          {/* City list */}
-          <div className="flex-1 overflow-y-auto p-4 space-y-4">
-            {REGIONS.map(region => (
-              <div key={region.id}>
-                <p className="text-xs font-bold text-[#9C9590] uppercase tracking-widest mb-2 px-1">
-                  {lang === 'am' ? region.am : region.en}
+function MapBrowserUnlocked({ lang, navigate, theme, heatPoints }: {
+  lang: Lang
+  navigate: (s: NavScreen) => void
+  theme: 'dark' | 'light'
+  heatPoints: [number, number, number][]
+}) {
+  const [selectedId, setSelectedId] = useState<string | null>(null)
+  const [query, setQuery] = useState('')
+  const selected = selectedId ? MARKETS.find(m => m.id === selectedId) : null
+
+  const leaderboard = useMemo(() => getMarketLeaderboard(), [])
+  const heatByMarket = useMemo(
+    () => new Map(getMarketHeatPoints().map(p => [p.marketId, p])),
+    [],
+  )
+  const rankByMarket = useMemo(
+    () => new Map(leaderboard.map(e => [e.market.id, e.rank])),
+    [leaderboard],
+  )
+
+  const filteredMarkets = useMemo(() => {
+    const q = query.trim().toLowerCase()
+    const list = q
+      ? MARKETS.filter(m => m.en.toLowerCase().includes(q) || m.am.includes(q))
+      : MARKETS
+    return [...list].sort((a, b) => (rankByMarket.get(a.id) ?? 99) - (rankByMarket.get(b.id) ?? 99))
+  }, [query, rankByMarket])
+
+  const tileUrl = theme === 'light'
+    ? 'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png'
+    : 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png'
+
+  return (
+    <div className="flex flex-col lg:flex-row" style={{ height: 'calc(100vh - 64px)' }}>
+      <div className="flex-1 relative theme-map-bg">
+        <MapContainer
+          center={ADDIS_CENTER}
+          zoom={12}
+          className="w-full h-full z-0"
+          zoomControl={false}
+          attributionControl={false}
+          style={{ background: 'var(--map-bg)' }}
+        >
+          <TileLayer url={tileUrl} />
+          <FitBounds />
+          <ZoomControl position="bottomright" />
+          {heatPoints.length > 0 && <MarketHeatmapLayer points={heatPoints} active theme={theme} />}
+          {selected && <FlyToMarket lat={selected.lat} lng={selected.lng} />}
+        </MapContainer>
+
+        <div className="absolute top-4 left-4 z-[1000]">
+          <div className="theme-card rounded-xl px-4 py-2.5">
+            <div className="flex items-center gap-2">
+              <LiveDot size="md" />
+              <div>
+                <p className="text-[11px] font-bold theme-text uppercase tracking-widest">
+                  {lang === 'en' ? 'Addis Ababa' : 'አዲስ አበባ'}
                 </p>
-                <div className="space-y-1">
-                  {region.areas.map(area => {
-                    const isActive = area.id === selectedAreaId
-                    const isHovered = area.id === hoveredArea
-                    const markets = getMarketsForArea(area.id)
-                    return (
-                      <button
-                        key={area.id}
-                        onClick={() => handleSelect(area.id)}
-                        onMouseEnter={() => setHoveredArea(area.id)}
-                        onMouseLeave={() => setHoveredArea(null)}
-                        className={`w-full flex items-center gap-3 px-3 py-3 rounded-xl text-left transition-all ${isActive
-                          ? 'bg-[#1D7A4E] text-white shadow-md'
-                          : isHovered
-                            ? 'bg-[#E8F5EE] text-[#1A1814]'
-                            : 'text-[#1A1814] hover:bg-[#F8F7F4]'
-                          }`}>
-                        <div className={`w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 ${isActive ? 'bg-white/20' : 'bg-[#F1EFE9]'}`}>
-                          <span className="text-sm">📍</span>
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <p className={`text-sm font-semibold truncate ${isActive ? 'text-white' : ''}`}>
-                            {lang === 'am' ? area.am : area.en}
-                          </p>
-                          <p className={`text-xs ${isActive ? 'text-white/60' : 'text-[#9C9590]'}`}>
-                            {markets.length} {lang === 'en' ? 'markets' : 'ገበያዎች'}
-                          </p>
-                        </div>
-                        {isActive && <div className="w-2 h-2 rounded-full bg-white flex-shrink-0" />}
-                      </button>
-                    )
-                  })}
-                </div>
+                <p className="text-[10px] theme-text-muted">
+                  {MARKETS.length} {lang === 'en' ? 'markets' : 'ገበያዎች'} · {lang === 'en' ? 'Price heat' : 'የዋጋ ሙቀት'}
+                </p>
               </div>
-            ))}
-          </div>
-
-          {/* Footer */}
-          {selectedArea && (
-            <div className="p-4 border-t border-[#E8E4DC] bg-[#F8F7F4]">
-              <div className="flex items-center gap-2 mb-3">
-                <div className="w-2 h-2 rounded-full bg-[#1D7A4E]" />
-                <span className="text-sm font-semibold text-[#1A1814]">
-                  {lang === 'am' ? selectedArea.am : selectedArea.en}
-                </span>
-              </div>
-              <button
-                onClick={() => navigate({ id: 'home' })}
-                className="w-full px-4 py-2.5 rounded-xl text-sm font-semibold text-white bg-[#1D7A4E] hover:bg-[#166040] transition-colors">
-                {lang === 'en' ? `View prices in ${selectedArea.en} →` : `በ${selectedArea.am} ዋጋዎች →`}
-              </button>
             </div>
+          </div>
+        </div>
+
+        <div className="absolute bottom-6 left-6 z-[1000] theme-card rounded-xl px-4 py-3.5 min-w-[200px]">
+          <p className="text-[10px] font-bold theme-text-muted uppercase tracking-widest mb-2.5">
+            {lang === 'en' ? 'Avg basket heat' : 'አverage ሙቀት'}
+          </p>
+          <div
+            className="h-2.5 rounded-full mb-2"
+            style={{
+              background: 'linear-gradient(to right, #1ED760 0%, #7AE582 28%, #FFA42B 52%, #FF6B35 76%, #F3727F 100%)',
+            }}
+          />
+          <div className="flex justify-between text-[10px] theme-text-dim font-medium">
+            <span>{lang === 'en' ? 'Lower' : 'ዝቅ'}</span>
+            <span>{lang === 'en' ? 'Higher' : 'ከፍ'}</span>
+          </div>
+          <p className="text-[10px] theme-text-dim mt-2 leading-relaxed">
+            {lang === 'en' ? 'Area leaderboard · tap a market to explore' : 'የአካባቢ ሊደርቦርድ · ገበያ ይንኩ'}
+          </p>
+        </div>
+      </div>
+
+      <div className="w-full lg:w-[360px] border-t lg:border-t-0 lg:border-l theme-border theme-surface flex flex-col flex-shrink-0">
+        {selected ? (
+          <MarketDetail
+            market={selected}
+            lang={lang}
+            navigate={navigate}
+            onBack={() => setSelectedId(null)}
+            heat={heatByMarket.get(selected.id)}
+          />
+        ) : (
+          <MarketList
+            lang={lang}
+            onSelect={setSelectedId}
+            query={query}
+            onQueryChange={setQuery}
+            filteredMarkets={filteredMarkets}
+            heatByMarket={heatByMarket}
+            rankByMarket={rankByMarket}
+          />
+        )}
+      </div>
+    </div>
+  )
+}
+
+function MarketList({ lang, onSelect, query, onQueryChange, filteredMarkets, heatByMarket, rankByMarket }: {
+  lang: Lang
+  onSelect: (id: string) => void
+  query: string
+  onQueryChange: (q: string) => void
+  filteredMarkets: typeof MARKETS
+  heatByMarket: Map<string, ReturnType<typeof getMarketHeatPoints>[number]>
+  rankByMarket: Map<string, number>
+}) {
+  return (
+    <div className="flex flex-col h-full">
+      <div className="p-4 border-b theme-border">
+        <p className="text-[10px] font-bold uppercase tracking-widest theme-accent mb-1">
+          {lang === 'en' ? 'Explore' : 'አስስ'}
+        </p>
+        <h2 className="text-sm font-bold theme-text mb-1">
+          {lang === 'en' ? 'Markets by price' : 'ገበያዎች በዋጋ'}
+        </h2>
+        <p className="text-[11px] theme-text-muted mb-3 leading-relaxed">
+          {lang === 'en' ? 'Ranked by avg basket · select to view prices.' : 'በአverage ቅርጫት · ዋጋዎችን ለማየት ይምረጡ።'}
+        </p>
+        <div className="relative">
+          <svg className="absolute left-3 top-1/2 -translate-y-1/2 theme-text-muted" width="14" height="14" viewBox="0 0 14 14" fill="none">
+            <circle cx="6" cy="6" r="4.5" stroke="currentColor" strokeWidth="1.2" />
+            <path d="M10 10L12 12" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" />
+          </svg>
+          <input
+            value={query}
+            onChange={e => onQueryChange(e.target.value)}
+            placeholder={lang === 'en' ? 'Search markets…' : 'ገበያ ፈልግ…'}
+            className="theme-input !py-2 !pl-9 !pr-8 !rounded-lg"
+          />
+          {query && (
+            <button onClick={() => onQueryChange('')} className="absolute right-3 top-1/2 -translate-y-1/2 theme-text-muted hover:theme-text text-sm">✕</button>
           )}
         </div>
       </div>
 
-      {/* Sidebar toggle */}
-      {!sidebarOpen && (
-        <button
-          onClick={() => setSidebarOpen(true)}
-          className="absolute top-4 left-4 z-[1000] px-3 py-2 bg-white rounded-xl shadow-lg border border-[#E8E4DC] flex items-center gap-2 text-sm font-semibold text-[#1A1814] hover:bg-[#F8F7F4] transition-colors">
-          <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M2 4h12M2 8h12M2 12h12" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" /></svg>
-          {lang === 'en' ? 'Cities' : 'ከተማዎች'}
-        </button>
-      )}
+      <div className="flex-1 overflow-y-auto p-3 space-y-2">
+        {filteredMarkets.map(m => {
+          const heat = heatByMarket.get(m.id)
+          const color = heatIntensityColor(heat?.intensity ?? 0.2)
+          const rank = rankByMarket.get(m.id)
 
-      {/* Map */}
-      <div className="flex-1 relative">
-        <MapContainer
-          center={[9.025, 38.747]}
-          zoom={6}
-          className="h-full w-full"
-          zoomControl={false}
-          attributionControl={false}
-        >
-          <TileLayer
-            url="https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png"
-          />
-          <MapController center={center} zoom={zoom} />
+          return (
+            <button
+              key={m.id}
+              onClick={() => onSelect(m.id)}
+              className="w-full text-left rounded-xl p-3 theme-card theme-card-interactive flex items-center gap-3 group"
+            >
+              {rank !== undefined ? <MedalBadge rank={rank} /> : null}
+              <span
+                className="w-9 h-9 rounded-full flex items-center justify-center text-[11px] font-bold text-[#121212] flex-shrink-0"
+                style={{ backgroundColor: color }}
+              >
+                {heat && heat.avg > 0 ? heat.avg : '—'}
+              </span>
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-semibold theme-text truncate group-hover:theme-accent transition-colors">
+                  {lang === 'am' ? m.am : m.en}
+                </p>
+                <p className="text-[10px] theme-text-muted">
+                  {heat?.live ?? 0}/5 {lang === 'en' ? 'live' : 'ቀጥታ'}
+                  {rank !== undefined && ` · #${rank + 1}`}
+                </p>
+              </div>
+              <div
+                className="w-1.5 h-7 rounded-full flex-shrink-0 opacity-70"
+                style={{ background: `linear-gradient(to top, transparent, ${color})` }}
+              />
+            </button>
+          )
+        })}
 
-          {ALL_AREAS.map(area => {
-            const isSelected = area.id === selectedAreaId
-            const isHovered = area.id === hoveredArea
-            const icon = L.divIcon({
-              className: '',
-              html: `<div style="width:${isSelected ? 28 : isHovered ? 22 : 18}px;height:${isSelected ? 28 : isHovered ? 22 : 18}px;position:relative;">
-                ${isSelected ? '<div style="position:absolute;inset:0;border-radius:50%;background:#1D7A4E;opacity:0.2;animation:ping 2s cubic-bezier(0,0,0.2,1) infinite;"></div>' : ''}
-                <div style="position:absolute;inset:0;border-radius:50%;border:2px solid ${isSelected ? '#1D7A4E' : isHovered ? '#1D7A4E' : '#9C9590'};background:${isSelected ? '#1D7A4E' : 'white'};box-shadow:${isSelected ? '0 0 0 4px rgba(29,122,78,0.2)' : '0 2px 8px rgba(0,0,0,0.15)'};">
-                  ${isSelected ? '<div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;"><div style="width:8px;height:8px;border-radius:50%;background:white;"></div></div>' : ''}
-                </div>
-              </div>`,
-              iconSize: [isSelected ? 28 : isHovered ? 22 : 18, isSelected ? 28 : isHovered ? 22 : 18],
-              iconAnchor: [isSelected ? 14 : isHovered ? 11 : 9, isSelected ? 14 : isHovered ? 11 : 9],
-            })
+        {filteredMarkets.length === 0 && (
+          <div className="text-center py-8">
+            <p className="text-sm theme-text-muted">{lang === 'en' ? 'No markets found' : 'ገበያ አልተገኘም'}</p>
+          </div>
+        )}
+      </div>
+    </div>
+  )
+}
+
+function MarketDetail({ market, lang, navigate, onBack, heat }: {
+  market: { id: string; en: string; am: string; img: string; lat: number; lng: number }
+  lang: Lang
+  navigate: (s: NavScreen) => void
+  onBack: () => void
+  heat?: { intensity: number; avg: number; live: number; rank: number }
+}) {
+  const color = heatIntensityColor(heat?.intensity ?? 0.2)
+  const live = heat?.live ?? 0
+  const avg = heat?.avg ?? 0
+
+  return (
+    <div className="flex flex-col h-full">
+      <div className="relative h-32 overflow-hidden flex-shrink-0">
+        <img src={market.img} alt={market.en} className="w-full h-full object-cover" />
+        <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
+        <div className="absolute inset-0 flex items-end p-4">
+          <div className="w-full">
+            <button onClick={onBack} className="text-[11px] text-white/70 hover:text-white mb-1.5 flex items-center gap-1 transition-colors">
+              &larr; {lang === 'en' ? 'All markets' : 'ሁሉም ገበያዎች'}
+            </button>
+            <div className="flex items-center gap-2">
+              <span className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ backgroundColor: color }} />
+              <p className="text-white font-bold text-base">{lang === 'am' ? market.am : market.en}</p>
+              {heat && (
+                <span className="text-[10px] font-bold text-white/70 ml-auto">
+                  #{heat.rank + 1} {lang === 'en' ? 'rank' : 'ደረጃ'}
+                </span>
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div className="px-4 py-4 border-b theme-border flex-shrink-0">
+        <div className="grid grid-cols-3 gap-2">
+          {[
+            { value: avg > 0 ? `~${avg}` : '—', label: lang === 'en' ? 'Avg birr' : 'Avg ብር', cls: 'theme-stat-value' },
+            { value: String(live), label: lang === 'en' ? 'Live' : 'ቀጥታ', cls: 'theme-stat-value-accent' },
+            { value: String(5 - live), label: lang === 'en' ? 'Gaps' : 'ክፍተቶች', cls: 'theme-stat-value-warning' },
+          ].map(s => (
+            <div key={s.label} className="theme-stat-cell py-2 text-center">
+              <p className={`text-base font-bold ${s.cls}`}>{s.value}</p>
+              <p className="text-[9px] theme-text-muted uppercase tracking-wider">{s.label}</p>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      <div className="flex-1 overflow-y-auto px-4 py-4">
+        <div className="space-y-1.5">
+          {COMMODITIES.map(c => {
+            const p = getP(c.id, market.id)
+            const published = p.status === 'published' ? p as Published : null
 
             return (
-              <Marker
-                key={area.id}
-                position={[area.lat, area.lng]}
-                icon={icon}
-                eventHandlers={{
-                  click: () => handleSelect(area.id),
-                  mouseover: () => setHoveredArea(area.id),
-                  mouseout: () => setHoveredArea(null),
+              <button
+                key={c.id}
+                onClick={() => {
+                  if (published) navigate({ id: 'price-detail', commodityId: c.id, marketId: market.id })
+                  else navigate({ id: 'price-no-data', commodityId: c.id, marketId: market.id })
                 }}
+                className="w-full flex items-center gap-3 p-2.5 rounded-lg transition-colors duration-100 border theme-border hover:bg-[var(--surface-2)] group"
               >
-                <Popup className="custom-popup">
-                  <div className="p-1 text-center">
-                    <p className="font-semibold text-[#1A1814] text-sm">{lang === 'am' ? area.am : area.en}</p>
-                    <p className="text-xs text-[#9C9590]">{getMarketsForArea(area.id).length} {lang === 'en' ? 'markets' : 'ገበያዎች'}</p>
+                <span className="text-lg flex-shrink-0">{c.emoji}</span>
+                <div className="flex-1 text-left min-w-0">
+                  <p className="text-sm font-medium theme-text group-hover:theme-accent transition-colors">
+                    {lang === 'am' ? c.am : c.en}
+                  </p>
+                  <p className="text-[10px] theme-text-muted">{lang === 'am' ? c.unitAm : c.unit}</p>
+                </div>
+                {published ? (
+                  <div className="text-right flex-shrink-0">
+                    <p className="text-sm font-bold theme-text" style={display}>
+                      {published.price} <span className="text-[10px] font-medium theme-text-muted">birr</span>
+                    </p>
+                    <p className="text-[10px] theme-text-muted">{published.freshness}</p>
                   </div>
-                </Popup>
-              </Marker>
+                ) : (
+                  <span className="text-xs font-semibold text-[var(--warning)] flex-shrink-0">
+                    ⚠ {lang === 'en' ? 'No data' : 'ዳታ የለም'}
+                  </span>
+                )}
+              </button>
             )
           })}
-        </MapContainer>
-
-        {/* Map overlay info */}
-        <div className="absolute bottom-6 right-6 z-[1000] bg-white rounded-2xl shadow-xl border border-[#E8E4DC] p-4 max-w-xs">
-          <div className="flex items-center gap-2 mb-2">
-            <span className="text-lg">🗺️</span>
-            <p className="text-sm font-bold text-[#1A1814]">{lang === 'en' ? 'Map Browser' : 'ካርታ ተቃኝ'}</p>
-          </div>
-          <p className="text-xs text-[#9C9590] mb-3">
-            {lang === 'en'
-              ? 'Click a city on the map or select from the list to view local market prices.'
-              : 'የአካባቢ ገበያ ዋጋዎችን ለማየት በካርታ ላይ ወይም ከዝርዝር ከተማ ይምረጡ።'}
-          </p>
-          <button
-            onClick={() => navigate({ id: 'home' })}
-            className="w-full px-3 py-2 rounded-xl text-xs font-semibold text-[#1D7A4E] bg-[#E8F5EE] hover:bg-[#C6E8D6] transition-colors">
-            {lang === 'en' ? 'Back to prices →' : 'ወደ ዋጋዎቹ ተመለስ →'}
-          </button>
         </div>
+      </div>
+
+      <div className="px-4 py-3 border-t theme-border flex-shrink-0">
+        <ReportPriceCta lang={lang} commodityId={COMMODITIES[0].id} marketId={market.id} size="sm" fullWidth />
       </div>
     </div>
   )
