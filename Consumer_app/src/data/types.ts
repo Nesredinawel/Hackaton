@@ -54,7 +54,6 @@ export type Region = {
 
 export type Category = {
   id: string
-  emoji: string
   en: string
   am: string
   img: string

@@ -25,7 +25,7 @@ export default function Footer({ lang, navigate }: { lang: Lang; navigate: (s: N
                 <li key={cat.id}>
                   <button onClick={() => navigate({ id: 'category-detail', categoryId: cat.id })}
                     className="text-sm text-white/60 hover:text-white transition-colors">
-                    {cat.emoji} {lang === 'am' ? cat.am : cat.en}
+                     {lang === 'am' ? cat.am : cat.en}
                   </button>
                 </li>
               ))}

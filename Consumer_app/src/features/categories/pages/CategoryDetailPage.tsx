@@ -42,7 +42,7 @@ export default function CategoryDetailPage({ lang, categoryId, navigate, selecte
               <LiveDot /><span className="text-xs font-bold text-green-400 uppercase tracking-widest">{liveCount} live</span>
             </div>
             <h1 className="text-3xl font-bold text-white" style={{ fontFamily: "'Clash Display','Inter',sans-serif", letterSpacing: '-0.03em' }}>
-              {cat.emoji} {lang === 'am' ? cat.am : cat.en}
+              {lang === 'am' ? cat.am : cat.en}
             </h1>
             <p className="text-white/60 text-sm mt-0.5" style={{ fontFamily: "'Noto Sans Ethiopic',sans-serif" }}>{cat.am}</p>
           </div>
