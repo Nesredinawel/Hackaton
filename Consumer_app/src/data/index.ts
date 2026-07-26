@@ -11,6 +11,13 @@ export { PRICES, getC, getMkt, getP, TG_BOT, tgBotLink, tgLink, tgAgentLink, ALL
 export type { MarketHeatPoint } from './prices'
 export type { Plan, PlanFeature, FeatureState } from './pricing'
 export { PLANS, PLAN_GUARANTEES, CONTACT_EMAIL } from './pricing'
+export type {
+  PaymentStatus, PaymentRecord, PaymentOutcome, CheckoutSession, SubscriptionPlanInfo,
+} from './billing'
+export {
+  fetchPlans, formatBirr, startChapaCheckout, fetchPayment, waitForPayment,
+  readPaymentIdFromUrl, clearPaymentIdFromUrl, finalisePaymentReturn,
+} from './billing'
 export type { SignUpResult, SignInResult, AccessResult } from './accounts'
 export {
   getAccount, getTier, isSignedIn, signUp, signIn, startDemoTrial, signOut,

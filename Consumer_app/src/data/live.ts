@@ -1,6 +1,6 @@
 import { apiGet, apiPost, fromApiCommodity, fromApiMarket, toApiCommodity, toApiMarket } from '@/lib/api'
-import type { HistoryPoint, PriceData } from './types'
-import { PRICES } from './prices'
+import type { PriceData } from './types'
+import { PRICES, type HistoryPoint } from './prices'
 
 export type CoverageMeta = {
   cells_expected: number

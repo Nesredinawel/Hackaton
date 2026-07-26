@@ -4,6 +4,7 @@ import {
   getAccount, signOut, cancelSubscription, exportsUsedToday, exportQuota, historyDepthDays,
   PRO_EXPORTS_PER_DAY,
 } from '@/data'
+import BillingCard from '../components/BillingCard'
 
 function planLabel(account: UserAccount, lang: Lang): string {
   if (account.tier === 'enterprise') return lang === 'en' ? 'Enterprise' : 'ኢንተርፕራይዝ'
@@ -82,16 +83,13 @@ export default function AccountPage({ lang, navigate }: { lang: Lang; navigate: 
           <button onClick={() => navigate({ id: 'dashboard' })} className="font-semibold text-[#1ED760] hover:underline">
             {lang === 'en' ? 'Open programme dashboard →' : 'Open programme dashboard →'}
           </button>
-          {!isEnterprise && (
-            <>
-              <button className="font-semibold text-[#1ED760] hover:underline">{lang === 'en' ? 'Manage billing' : 'Manage billing'}</button>
-              {account.subscriptionStatus !== 'cancelled' && (
-                <button onClick={doCancel} className="text-[#B3B3B3] hover:text-[#F3727F] transition-colors">{lang === 'en' ? 'Cancel plan' : 'Cancel plan'}</button>
-              )}
-            </>
+          {!isEnterprise && account.subscriptionStatus !== 'cancelled' && (
+            <button onClick={doCancel} className="text-[#B3B3B3] hover:text-[#F3727F] transition-colors">{lang === 'en' ? 'Cancel plan' : 'Cancel plan'}</button>
           )}
         </div>
       </div>
+
+      {!isEnterprise && account.subscriptionStatus !== 'active' && <BillingCard lang={lang} />}
 
       {/* Usage */}
       <h3 className="text-sm font-bold text-[#B3B3B3] uppercase tracking-widest mb-4">{lang === 'en' ? 'Usage this month' : 'የዚህ ወር አጠቃቀም'}</h3>

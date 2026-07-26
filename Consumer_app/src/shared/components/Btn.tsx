@@ -24,6 +24,7 @@ export default function Btn({
   onClick,
   className = '',
   fullWidth = false,
+  disabled = false,
 }: {
   children: ReactNode
   variant?: Variant
@@ -32,12 +33,14 @@ export default function Btn({
   onClick?: (e: MouseEvent) => void
   className?: string
   fullWidth?: boolean
+  disabled?: boolean
 }) {
   const cls = [
     'inline-flex items-center justify-center rounded-full transition-all',
     sizes[size],
     variants[variant],
     fullWidth ? 'w-full' : '',
+    disabled ? 'opacity-60 pointer-events-none' : '',
     className,
   ].join(' ')
 
@@ -46,12 +49,13 @@ export default function Btn({
   if (href) {
     return (
       <a
-        href={href}
+        href={disabled ? undefined : href}
         target={href.startsWith('#') || href.startsWith('/') ? undefined : '_blank'}
         rel="noopener noreferrer"
         className={cls}
         style={style}
         onClick={onClick}
+        aria-disabled={disabled || undefined}
       >
         {children}
       </a>
@@ -59,7 +63,7 @@ export default function Btn({
   }
 
   return (
-    <button type="button" onClick={onClick} className={cls} style={style}>
+    <button type="button" onClick={onClick} className={cls} style={style} disabled={disabled}>
       {children}
     </button>
   )

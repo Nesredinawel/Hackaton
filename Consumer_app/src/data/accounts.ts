@@ -8,6 +8,7 @@ import type {
   Lang,
 } from './types'
 import { PRO_EXPORTS_PER_DAY, HISTORY_DAYS, TRIAL_DAYS } from './types'
+import { clearBackendSession } from '@/lib/session'
 
 /* ─────────────────────────────────────────────────────────────
    Mock account store (localStorage). Public tier = no account.
@@ -128,9 +129,10 @@ export function signIn(email: string, password: string): SignInResult {
   return { ok: true, account }
 }
 
-/** One-click Professional trial for demos (localStorage only). */
+/** One-click Professional trial for demos (localStorage only).
+    The domain must be a real one — Chapa rejects unroutable emails at checkout. */
 export function startDemoTrial(): SignUpResult {
-  const email = 'demo@waga.index'
+  const email = 'demo@wagaindex.com'
   const existing = allAccounts().find((a) => a.email === email)
   if (existing) {
     existing.tier = 'professional'
@@ -153,6 +155,7 @@ export function startDemoTrial(): SignUpResult {
 
 export function signOut(): void {
   localStorage.removeItem(SESSION_KEY)
+  clearBackendSession()
   notifyAuthChanged()
 }
 
