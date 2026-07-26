@@ -163,8 +163,8 @@ export default function DashboardPage({ lang, navigate }: {
             </CardTitle>
             <CardDescription className="text-sm leading-relaxed max-w-sm mx-auto">
               {en
-                ? 'Basket inflation, coverage honesty, cited cash-assistance guidance, and market pressure — the layer programmes pay for.'
-                : 'Basket inflation, coverage honesty, cited cash-assistance guidance, and market pressure.'}
+                ? 'Basket inflation, coverage honesty, cited cash-assistance guidance, and per-market price coverage — the layer programmes pay for.'
+                : 'Basket inflation, coverage honesty, cited cash-assistance guidance, and per-market price coverage.'}
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-3">
@@ -198,8 +198,12 @@ export default function DashboardPage({ lang, navigate }: {
     .filter(i => i.status === 'published' && i.contribution_to_change_pct != null)
     .sort((a, b) => Math.abs(b.contribution_to_change_pct ?? 0) - Math.abs(a.contribution_to_change_pct ?? 0))
 
-  const liveMarkets = (heat?.markets ?? []).filter(m => m.cells_published > 0)
-  const thinMarkets = (heat?.markets ?? []).filter(m => m.cells_published < m.cells_expected)
+  const marketRows = heat?.markets ?? []
+  const liveMarkets = marketRows.filter(m => m.cells_published > 0)
+  const thinMarkets = marketRows.filter(m => m.cells_published > 0 && m.cells_published < m.cells_expected)
+  const emptyMarkets = marketRows.filter(m => m.cells_published === 0)
+  const marketsWithInflation = marketRows.filter(m => m.heat != null)
+  const hasInflationSignal = marketsWithInflation.length > 0
 
   const coverageStats = coverage
     ? [
@@ -261,7 +265,7 @@ export default function DashboardPage({ lang, navigate }: {
                   ↓ Export panel CSV
                 </Button>
                 <Button variant="secondary" size="sm" onClick={() => navigate({ id: 'map' })}>
-                  Open map
+                  {en ? 'Coverage map' : 'Coverage map'}
                 </Button>
               </div>
             </div>
@@ -307,6 +311,123 @@ export default function DashboardPage({ lang, navigate }: {
                   </Fragment>
                 ))}
               </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {(liveMarkets.length > 0 || emptyMarkets.length > 0 || loading) && (
+          <Card>
+            <CardHeader className="sm:flex-row sm:items-start sm:justify-between gap-3">
+              <div>
+                <CardTitle className={sectionTitle}>
+                  {en ? 'Market coverage' : 'Market coverage'}
+                </CardTitle>
+                <CardDescription className="text-xs leading-relaxed max-w-2xl">
+                  {en
+                    ? 'Published staple prices per Addis market — crowdsourced via Telegram agents. This is coverage density, not a geographic heat layer.'
+                    : 'Published staple prices per Addis market — crowdsourced via Telegram agents.'}
+                </CardDescription>
+              </div>
+              <CardAction className="sm:pt-0">
+                <Button variant="secondary" size="sm" onClick={() => navigate({ id: 'map' })}>
+                  {en ? 'Open coverage map' : 'Open coverage map'}
+                </Button>
+              </CardAction>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {loading ? (
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <Skeleton className="h-28 w-full rounded-xl" />
+                  <Skeleton className="h-28 w-full rounded-xl" />
+                </div>
+              ) : (
+                <>
+                  <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                    <div className="rounded-xl theme-surface-2 px-3 py-3">
+                      <p className="text-[10px] font-bold uppercase tracking-wider theme-text-dim mb-2 flex items-center gap-1.5">
+                        <LiveDot size="sm" />
+                        {en ? `With prices (${liveMarkets.length})` : `With prices (${liveMarkets.length})`}
+                      </p>
+                      {liveMarkets.length === 0 ? (
+                        <p className="text-sm text-muted-foreground">
+                          {en ? 'No markets with published cells yet.' : 'No markets with published cells yet.'}
+                        </p>
+                      ) : (
+                        <ul className="space-y-1.5">
+                          {liveMarkets.slice(0, 6).map(m => (
+                            <li key={m.market_code} className="flex items-center justify-between gap-2 text-sm">
+                              <span className="theme-text truncate">{m.market_name_en ?? fromApiMarket(m.market_code)}</span>
+                              <Badge variant="outline" className="theme-badge-published border-transparent text-[10px] tabular-nums shrink-0">
+                                {m.cells_published}/{m.cells_expected}
+                              </Badge>
+                            </li>
+                          ))}
+                        </ul>
+                      )}
+                    </div>
+
+                    <div className="rounded-xl theme-surface-2 px-3 py-3">
+                      <p className="text-[10px] font-bold uppercase tracking-wider theme-text-dim mb-2">
+                        {en ? `Partial coverage (${thinMarkets.length})` : `Partial (${thinMarkets.length})`}
+                      </p>
+                      {thinMarkets.length === 0 ? (
+                        <p className="text-sm text-muted-foreground">
+                          {en ? 'No partially covered markets.' : 'No partially covered markets.'}
+                        </p>
+                      ) : (
+                        <ul className="space-y-1.5">
+                          {thinMarkets.slice(0, 6).map(m => (
+                            <li key={m.market_code} className="flex items-center justify-between gap-2 text-sm">
+                              <span className="theme-text-muted truncate">{m.market_name_en ?? fromApiMarket(m.market_code)}</span>
+                              <Badge variant="outline" className="theme-badge-warning border-transparent text-[10px] tabular-nums shrink-0">
+                                {m.cells_published}/{m.cells_expected}
+                              </Badge>
+                            </li>
+                          ))}
+                        </ul>
+                      )}
+                    </div>
+
+                    <div className="rounded-xl theme-surface-2 px-3 py-3 sm:col-span-2 lg:col-span-1">
+                      <p className="text-[10px] font-bold uppercase tracking-wider theme-text-dim mb-2">
+                        {en ? '7-day inflation signal' : '7-day inflation signal'}
+                      </p>
+                      {hasInflationSignal ? (
+                        <>
+                          <p className="text-sm text-muted-foreground mb-2 leading-relaxed">
+                            {en
+                              ? `${marketsWithInflation.length} market${marketsWithInflation.length === 1 ? '' : 's'} with enough history for 7-day change. See the map for area comparison.`
+                              : `${marketsWithInflation.length} markets with 7-day change.`}
+                          </p>
+                          {heat?.hottest_cell && (
+                            <div className="flex flex-wrap items-center gap-2 text-sm">
+                              <span className="theme-text font-semibold">
+                                {COMMODITIES.find(c => c.id === fromApiCommodity(heat.hottest_cell.commodity_code))?.emoji}{' '}
+                                {fromApiMarket(heat.hottest_cell.market_code)}
+                              </span>
+                              <ChangeBadge pct={heat.hottest_cell.pct_change} suffix="7d" size="sm" />
+                            </div>
+                          )}
+                        </>
+                      ) : (
+                        <p className="text-sm text-muted-foreground leading-relaxed">
+                          {en
+                            ? 'Not enough prior-window prices yet — map shows price levels only until 7-day history builds.'
+                            : 'Not enough prior-window prices yet — map shows price levels only.'}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+
+                  {emptyMarkets.length > 0 && (
+                    <p className="text-[11px] theme-text-dim">
+                      {en
+                        ? `${emptyMarkets.length} market${emptyMarkets.length === 1 ? '' : 's'} with no published prices yet — awaiting agent submissions.`
+                        : `${emptyMarkets.length} markets awaiting submissions.`}
+                    </p>
+                  )}
+                </>
+              )}
             </CardContent>
           </Card>
         )}
@@ -548,95 +669,47 @@ export default function DashboardPage({ lang, navigate }: {
           </CardContent>
         </Card>
 
-        <div className="grid gap-6 lg:gap-8 lg:grid-cols-2 lg:items-stretch">
-          <Card className="h-full">
-            <CardHeader>
-              <CardTitle className={sectionTitle}>Market pressure</CardTitle>
-              <CardDescription className="text-xs">Thin coverage listed honestly</CardDescription>
-              <CardAction>
-                <Button variant="secondary" size="sm" onClick={() => navigate({ id: 'map' })}>
-                  Heatmap →
-                </Button>
-              </CardAction>
-            </CardHeader>
-            <CardContent>
-              <div className="grid gap-3 sm:grid-cols-2">
-                <div>
-                  <p className="text-[10px] font-bold uppercase tracking-wider theme-text-dim mb-2 flex items-center gap-1.5">
-                    <LiveDot size="sm" /> Live ({liveMarkets.length})
-                  </p>
-                  <ul className="space-y-1.5">
-                    {liveMarkets.slice(0, 5).map(m => (
-                      <li key={m.market_code} className="flex items-center justify-between text-sm gap-2">
-                        <span className="theme-text truncate">{m.market_name_en ?? fromApiMarket(m.market_code)}</span>
-                        <span className="text-[11px] theme-text-muted tabular-nums shrink-0">
-                          {m.cells_published}/{m.cells_expected}
-                        </span>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-                <div>
-                  <p className="text-[10px] font-bold uppercase tracking-wider theme-text-dim mb-2">
-                    Thin ({thinMarkets.length})
-                  </p>
-                  <ul className="space-y-1.5">
-                    {thinMarkets.slice(0, 5).map(m => (
-                      <li key={m.market_code} className="flex items-center justify-between text-sm gap-2">
-                        <span className="theme-text-muted truncate">{m.market_name_en ?? fromApiMarket(m.market_code)}</span>
-                        <span className="text-[11px] text-[var(--warning)] font-semibold tabular-nums shrink-0">
-                          {m.cells_published}/{m.cells_expected}
-                        </span>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card className="h-full flex flex-col">
-            <CardHeader>
-              <CardTitle className={sectionTitle}>Provenance export</CardTitle>
-              <CardDescription className="text-xs leading-relaxed">
-                Full market×commodity panel. Insufficient-data rows included with blank price — never filled in.
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="mt-auto space-y-3">
-              {exportMsg === 'limit' && (
-                <Alert variant="destructive" className="theme-badge-warning border-transparent">
-                  <AlertDescription className="text-[var(--warning)] font-semibold">
-                    Daily export limit reached ({PRO_EXPORTS_PER_DAY}/day on Professional).
-                  </AlertDescription>
-                </Alert>
-              )}
-              {exportMsg === 'error' && (
-                <Alert variant="destructive" className="theme-badge-warning border-transparent">
-                  <AlertDescription className="text-[var(--warning)] font-semibold">
-                    Export failed. Try again or check your plan.
-                  </AlertDescription>
-                </Alert>
-              )}
-              {exportMsg === 'done' && exportStats && (
-                <Alert className="theme-badge-published border-transparent">
-                  <AlertDescription className="text-foreground font-semibold">
-                    ✓ Downloaded · {exportStats.published} published · {exportStats.insufficient} insufficient
-                  </AlertDescription>
-                </Alert>
-              )}
-            </CardContent>
-            <CardFooter className="flex-col gap-3 border-0 bg-transparent pt-0">
-              <Button className="w-full" onClick={() => void doPanelExport()}>
-                ↓ Download panel CSV
-              </Button>
-              {getTier() === 'professional' && (
-                <p className="text-[11px] theme-text-dim text-center w-full">
-                  {exportsUsedToday()} of {exportQuota()} used today
-                </p>
-              )}
-            </CardFooter>
-          </Card>
-        </div>
+        <Card>
+          <CardHeader>
+            <CardTitle className={sectionTitle}>Provenance export</CardTitle>
+            <CardDescription className="text-xs leading-relaxed">
+              Full market×commodity panel. Insufficient-data rows included with blank price — never filled in.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            {exportMsg === 'limit' && (
+              <Alert variant="destructive" className="theme-badge-warning border-transparent">
+                <AlertDescription className="text-[var(--warning)] font-semibold">
+                  Daily export limit reached ({PRO_EXPORTS_PER_DAY}/day on Professional).
+                </AlertDescription>
+              </Alert>
+            )}
+            {exportMsg === 'error' && (
+              <Alert variant="destructive" className="theme-badge-warning border-transparent">
+                <AlertDescription className="text-[var(--warning)] font-semibold">
+                  Export failed. Try again or check your plan.
+                </AlertDescription>
+              </Alert>
+            )}
+            {exportMsg === 'done' && exportStats && (
+              <Alert className="theme-badge-published border-transparent">
+                <AlertDescription className="text-foreground font-semibold">
+                  ✓ Downloaded · {exportStats.published} published · {exportStats.insufficient} insufficient
+                </AlertDescription>
+              </Alert>
+            )}
+          </CardContent>
+          <CardFooter className="flex-col gap-3 border-0 bg-transparent pt-0">
+            <Button className="w-full sm:w-auto" onClick={() => void doPanelExport()}>
+              ↓ Download panel CSV
+            </Button>
+            {getTier() === 'professional' && (
+              <p className="text-[11px] theme-text-dim text-center sm:text-left w-full">
+                {exportsUsedToday()} of {exportQuota()} used today
+              </p>
+            )}
+          </CardFooter>
+        </Card>
 
         <p className="text-[11px] theme-text-dim text-center pb-6">
           Every figure traces to published index cells. AI never invents a price.
