@@ -73,7 +73,7 @@ export const getC = (id: string) => COMMODITIES.find(c => c.id === id)!
 export const getMkt = (id: string) => MARKETS.find(m => m.id === id)!
 export const getP = (cid: string, mid: string): PriceData =>
   PRICES[`${cid}-${mid}`] ?? { status: 'insufficient', current: 0, zero: true }
-export const TG_BOT = 'WagaIndexBot'
+export const TG_BOT = 'Waga_ai_bot'
 
 export const tgBotLink = (start?: string) =>
   start
