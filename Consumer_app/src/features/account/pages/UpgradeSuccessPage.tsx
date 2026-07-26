@@ -1,5 +1,11 @@
 import type { Lang, NavScreen } from '@/data'
 import { getAccount, COMMODITIES } from '@/data'
+import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+
+const display = { fontFamily: "'SpotifyMixUITitle','CircularSp','Helvetica Neue',Helvetica,Arial,sans-serif" } as const
+const sectionTitle = 'text-[11px] font-bold uppercase tracking-[0.14em] text-muted-foreground'
 
 export default function UpgradeSuccessPage({ lang, navigate }: { lang: Lang; navigate: (s: NavScreen) => void }) {
   const account = getAccount()
@@ -39,50 +45,53 @@ export default function UpgradeSuccessPage({ lang, navigate }: { lang: Lang; nav
   ]
 
   return (
-    <div className="max-w-lg mx-auto px-6 py-14">
-      <div className="rounded-2xl p-6 mb-8 text-center" style={{ backgroundColor: '#1F1F1F', border: '1px solid #1DB954' }}>
-        <span className="text-3xl block mb-2">✅</span>
-        <h1 className="font-bold text-white mb-1" style={{ fontFamily: "'SpotifyMixUITitle','CircularSp','Helvetica Neue',Helvetica,Arial,sans-serif", fontSize: 24, letterSpacing: '-0.03em' }}>
-          {lang === 'en' ? 'Welcome to Professional' : 'Welcome to Professional'}
-        </h1>
-        <p className="text-sm text-[#B3B3B3]">
-          {lang === 'en'
-            ? `Your account is active${account ? `, ${account.fullName.split(' ')[0]}` : ''}. 14-day trial started.`
-            : `Your account is active${account ? `, ${account.fullName.split(' ')[0]}` : ''}. 14-day trial started.`}
-        </p>
-        <button
-          type="button"
-          onClick={() => navigate({ id: 'dashboard' })}
-          className="mt-4 inline-flex items-center justify-center rounded-full bg-[#1ED760] px-5 py-2.5 text-sm font-bold text-[#121212] hover:brightness-110"
-        >
-          Open programme dashboard →
-        </button>
-      </div>
+    <div className="max-w-lg mx-auto px-6 py-8 lg:py-14">
+      <Card className="mb-8 text-center theme-highlight border-primary">
+        <CardHeader className="items-center gap-3">
+          <span className="text-3xl">✅</span>
+          <Badge>Professional</Badge>
+          <CardTitle className="text-2xl font-bold" style={display}>
+            {lang === 'en' ? 'Welcome to Professional' : 'Welcome to Professional'}
+          </CardTitle>
+          <CardDescription>
+            {lang === 'en'
+              ? `Your account is active${account ? `, ${account.fullName.split(' ')[0]}` : ''}. 14-day trial started.`
+              : `Your account is active${account ? `, ${account.fullName.split(' ')[0]}` : ''}. 14-day trial started.`}
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <Button onClick={() => navigate({ id: 'dashboard' })}>
+            Open programme dashboard →
+          </Button>
+        </CardContent>
+      </Card>
 
-      <h2 className="text-sm font-bold text-[#B3B3B3] uppercase tracking-widest mb-4">
+      <p className={sectionTitle + ' mb-4'}>
         What you can do now
-      </h2>
+      </p>
       <div className="space-y-3">
         {actions.map((a) => (
-          <div key={a.titleEn} className="bg-[#181818] rounded-2xl border border-[#282828] p-5" style={{ boxShadow: '0 8px 8px rgba(0,0,0,0.3)' }}>
-            <div className="flex items-center gap-2 mb-1">
-              <span className="text-lg">{a.icon}</span>
-              <p className="text-sm font-bold text-white">{lang === 'am' ? a.titleAm : a.titleEn}</p>
-            </div>
-            <p className="text-sm text-[#B3B3B3] mb-3">{lang === 'am' ? a.bodyAm : a.bodyEn}</p>
-            <button onClick={a.go} className="text-sm font-semibold text-[#1ED760] hover:underline">
-              {lang === 'am' ? a.ctaAm : a.ctaEn}
-            </button>
-          </div>
+          <Card key={a.titleEn} size="sm">
+            <CardContent className="pt-0">
+              <div className="flex items-center gap-2 mb-1">
+                <span className="text-lg">{a.icon}</span>
+                <p className="text-sm font-bold text-foreground">{lang === 'am' ? a.titleAm : a.titleEn}</p>
+              </div>
+              <p className="text-sm text-muted-foreground mb-3">{lang === 'am' ? a.bodyAm : a.bodyEn}</p>
+              <Button variant="link" className="h-auto p-0" onClick={a.go}>
+                {lang === 'am' ? a.ctaAm : a.ctaEn}
+              </Button>
+            </CardContent>
+          </Card>
         ))}
       </div>
 
-      <div className="mt-8 text-sm text-[#B3B3B3]">
+      <p className="mt-8 text-sm text-muted-foreground">
         Need Enterprise?{' '}
-        <button onClick={() => navigate({ id: 'enterprise-enquiry' })} className="font-semibold text-[#1ED760] hover:underline">
+        <Button variant="link" className="h-auto p-0" onClick={() => navigate({ id: 'enterprise-enquiry' })}>
           Talk to us →
-        </button>
-      </div>
+        </Button>
+      </p>
     </div>
   )
 }

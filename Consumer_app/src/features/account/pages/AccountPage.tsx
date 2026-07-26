@@ -4,7 +4,14 @@ import {
   getAccount, signOut, cancelSubscription, exportsUsedToday, exportQuota, historyDepthDays,
   PRO_EXPORTS_PER_DAY,
 } from '@/data'
+import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Separator } from '@/components/ui/separator'
 import BillingCard from '../components/BillingCard'
+
+const display = { fontFamily: "'SpotifyMixUITitle','CircularSp','Helvetica Neue',Helvetica,Arial,sans-serif" } as const
+const sectionTitle = 'text-[11px] font-bold uppercase tracking-[0.14em] text-muted-foreground'
 
 function planLabel(account: UserAccount, lang: Lang): string {
   if (account.tier === 'enterprise') return lang === 'en' ? 'Enterprise' : 'ኢንተርፕራይዝ'
@@ -26,26 +33,26 @@ export default function AccountPage({ lang, navigate }: { lang: Lang; navigate: 
 
   if (!account) {
     return (
-      <div className="max-w-lg mx-auto px-6 py-16 text-center">
-        <div className="bg-[#181818] rounded-2xl border border-[#282828] p-8" style={{ boxShadow: '0 8px 8px rgba(0,0,0,0.3)' }}>
-          <span className="text-4xl block mb-4">👤</span>
-          <h1 className="text-xl font-bold text-white mb-2" style={{ fontFamily: "'SpotifyMixUITitle','CircularSp','Helvetica Neue',Helvetica,Arial,sans-serif" }}>
-            {lang === 'en' ? 'You are not signed in' : 'አልገቡም'}
-          </h1>
-          <p className="text-sm text-[#B3B3B3] mb-6">
-            {lang === 'en' ? 'Sign in to manage your plan, or start a free trial.' : 'ዕቅድዎን ለማስተዳደር ይግቡ፣ ወይም ነጻ ሙከራ ይጀምሩ።'}
-          </p>
-          <div className="flex flex-col gap-2.5">
-            <button onClick={() => navigate({ id: 'sign-in' })}
-              className="w-full py-3 rounded-full text-sm font-semibold text-[#121212] bg-[#1ED760] hover:bg-[#1DB954] transition-colors">
+      <div className="max-w-lg mx-auto px-6 py-8 lg:py-16">
+        <Card className="text-center">
+          <CardHeader className="items-center gap-3">
+            <span className="text-4xl">👤</span>
+            <CardTitle className="text-xl font-bold" style={display}>
+              {lang === 'en' ? 'You are not signed in' : 'አልገቡም'}
+            </CardTitle>
+            <CardDescription>
+              {lang === 'en' ? 'Sign in to manage your plan, or start a free trial.' : 'ዕቅድዎን ለማስተዳደር ይግቡ፣ ወይም ነጻ ሙከራ ይጀምሩ።'}
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="flex flex-col gap-2.5">
+            <Button className="w-full" size="lg" onClick={() => navigate({ id: 'sign-in' })}>
               {lang === 'en' ? 'Sign in' : 'ግባ'}
-            </button>
-            <button onClick={() => navigate({ id: 'pricing' })}
-              className="w-full py-3 rounded-full text-sm font-semibold text-white border border-[#282828] hover:border-[#B3B3B3] transition-colors">
+            </Button>
+            <Button variant="secondary" className="w-full" size="lg" onClick={() => navigate({ id: 'pricing' })}>
               {lang === 'en' ? 'See plans' : 'ዕቅዶችን እይ'}
-            </button>
-          </div>
-        </div>
+            </Button>
+          </CardContent>
+        </Card>
       </div>
     )
   }
@@ -59,90 +66,98 @@ export default function AccountPage({ lang, navigate }: { lang: Lang; navigate: 
   const doCancel = () => { cancelSubscription(); setAccount(getAccount()) }
 
   const Row = ({ l, v }: { l: string; v: string }) => (
-    <div className="flex items-center justify-between py-2.5 border-b border-[#181818] last:border-0">
-      <span className="text-sm text-[#B3B3B3]">{l}</span>
-      <span className="text-sm font-semibold text-white">{v}</span>
+    <div className="flex items-center justify-between py-2.5">
+      <span className="text-sm text-muted-foreground">{l}</span>
+      <span className="text-sm font-semibold text-foreground">{v}</span>
     </div>
   )
 
   return (
-    <div className="max-w-2xl mx-auto px-6 lg:px-10 py-12">
-      <h1 className="font-bold text-white mb-8" style={{ fontFamily: "'SpotifyMixUITitle','CircularSp','Helvetica Neue',Helvetica,Arial,sans-serif", fontSize: 28, letterSpacing: '-0.03em' }}>
+    <div className="max-w-2xl mx-auto px-6 lg:px-10 py-8 lg:py-12">
+      <h1 className="font-bold text-foreground mb-8" style={{ ...display, fontSize: 28, letterSpacing: '-0.03em' }}>
         {lang === 'en' ? 'My account' : 'የእኔ መለያ'}
       </h1>
 
-      {/* Plan card */}
-      <div className="bg-[#181818] rounded-2xl border border-[#282828] p-6 mb-6" style={{ boxShadow: '0 8px 8px rgba(0,0,0,0.3)' }}>
-        <div className="flex items-center gap-2 mb-1">
-          <span>{isEnterprise ? '🏛' : '⭐'}</span>
-          <h2 className="text-lg font-bold text-white" style={{ fontFamily: "'SpotifyMixUITitle','CircularSp','Helvetica Neue',Helvetica,Arial,sans-serif" }}>{planLabel(account, lang)}</h2>
-        </div>
-        <p className="text-sm text-[#B3B3B3] mb-3">{statusLabel(account, lang)}</p>
-        <p className="text-sm text-white mb-4">{account.email}</p>
-        <div className="flex flex-wrap gap-4 text-sm mb-2">
-          <button onClick={() => navigate({ id: 'dashboard' })} className="font-semibold text-[#1ED760] hover:underline">
+      <Card className="mb-6">
+        <CardHeader>
+          <div className="flex items-center gap-2">
+            <span>{isEnterprise ? '🏛' : '⭐'}</span>
+            <CardTitle className="text-lg font-bold" style={display}>{planLabel(account, lang)}</CardTitle>
+            <Badge variant="outline" className="ml-auto">{statusLabel(account, lang)}</Badge>
+          </div>
+          <CardDescription>{account.email}</CardDescription>
+        </CardHeader>
+        <CardContent className="flex flex-wrap gap-4">
+          <Button variant="link" className="h-auto p-0" onClick={() => navigate({ id: 'dashboard' })}>
             {lang === 'en' ? 'Open programme dashboard →' : 'Open programme dashboard →'}
-          </button>
+          </Button>
           {!isEnterprise && account.subscriptionStatus !== 'cancelled' && (
-            <button onClick={doCancel} className="text-[#B3B3B3] hover:text-[#F3727F] transition-colors">{lang === 'en' ? 'Cancel plan' : 'Cancel plan'}</button>
+            <Button variant="ghost" size="sm" onClick={doCancel} className="text-destructive hover:text-destructive">
+              {lang === 'en' ? 'Cancel plan' : 'Cancel plan'}
+            </Button>
           )}
-        </div>
-      </div>
+        </CardContent>
+      </Card>
 
       {!isEnterprise && account.subscriptionStatus !== 'active' && <BillingCard lang={lang} />}
 
-      {/* Usage */}
-      <h3 className="text-sm font-bold text-[#B3B3B3] uppercase tracking-widest mb-4">{lang === 'en' ? 'Usage this month' : 'የዚህ ወር አጠቃቀም'}</h3>
-      <div className="bg-[#181818] rounded-2xl border border-[#282828] p-6 mb-6 space-y-5" style={{ boxShadow: '0 8px 8px rgba(0,0,0,0.3)' }}>
-        <div>
-          <div className="flex items-center justify-between mb-2">
-            <span className="text-sm font-semibold text-white">{lang === 'en' ? 'CSV exports' : 'CSV ማውጫዎች'}</span>
-            <span className="text-xs text-[#B3B3B3]">{isEnterprise ? (lang === 'en' ? 'Unlimited' : 'ያልተገደበ') : `${used} ${lang === 'en' ? 'of' : 'ከ'} ${PRO_EXPORTS_PER_DAY}/${lang === 'en' ? 'day' : 'ቀን'}`}</span>
-          </div>
-          {!isEnterprise && (
-            <div className="h-2 rounded-full bg-[#181818] overflow-hidden">
-              <div className="h-full rounded-full bg-[#1ED760] transition-all" style={{ width: `${Math.min(100, quota > 0 ? (used / quota) * 100 : 0)}%` }} />
+      <p className={sectionTitle + ' mb-4'}>{lang === 'en' ? 'Usage this month' : 'የዚህ ወር አጠቃቀም'}</p>
+      <Card className="mb-6">
+        <CardContent className="space-y-5 pt-0">
+          <div>
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-sm font-semibold text-foreground">{lang === 'en' ? 'CSV exports' : 'CSV ማውጫዎች'}</span>
+              <span className="text-xs text-muted-foreground">{isEnterprise ? (lang === 'en' ? 'Unlimited' : 'ያልተገደበ') : `${used} ${lang === 'en' ? 'of' : 'ከ'} ${PRO_EXPORTS_PER_DAY}/${lang === 'en' ? 'day' : 'ቀን'}`}</span>
             </div>
-          )}
-        </div>
-        <div className="flex items-center justify-between">
-          <span className="text-sm font-semibold text-white">{lang === 'en' ? 'History access' : 'የታሪክ መዳረሻ'}</span>
-          <span className="text-xs text-[#B3B3B3]">
-            {depth === null ? (lang === 'en' ? 'Full history' : 'ሙሉ ታሪክ') : `${depth} ${lang === 'en' ? 'days available' : 'ቀናት ይገኛሉ'}`}
-          </span>
-        </div>
-        <div className="flex items-center justify-between">
-          <span className="text-sm font-semibold text-white">{lang === 'en' ? 'API access' : 'የኤፒአይ መዳረሻ'}</span>
-          <span className="text-xs text-[#B3B3B3]">{isEnterprise ? (lang === 'en' ? 'Enabled' : 'ነቅቷል') : (lang === 'en' ? 'Not included in your plan' : 'በዕቅድዎ ውስጥ የለም')}</span>
-        </div>
-      </div>
+            {!isEnterprise && (
+              <div className="h-2 rounded-full bg-muted overflow-hidden">
+                <div className="h-full rounded-full bg-primary transition-all" style={{ width: `${Math.min(100, quota > 0 ? (used / quota) * 100 : 0)}%` }} />
+              </div>
+            )}
+          </div>
+          <Separator />
+          <div className="flex items-center justify-between">
+            <span className="text-sm font-semibold text-foreground">{lang === 'en' ? 'History access' : 'የታሪክ መዳረሻ'}</span>
+            <span className="text-xs text-muted-foreground">
+              {depth === null ? (lang === 'en' ? 'Full history' : 'ሙሉ ታሪክ') : `${depth} ${lang === 'en' ? 'days available' : 'ቀናት ይገኛሉ'}`}
+            </span>
+          </div>
+          <div className="flex items-center justify-between">
+            <span className="text-sm font-semibold text-foreground">{lang === 'en' ? 'API access' : 'የኤፒአይ መዳረሻ'}</span>
+            <span className="text-xs text-muted-foreground">{isEnterprise ? (lang === 'en' ? 'Enabled' : 'ነቅቷል') : (lang === 'en' ? 'Not included in your plan' : 'በዕቅድዎ ውስጥ የለም')}</span>
+          </div>
+        </CardContent>
+      </Card>
 
-      {/* Upgrade CTA (Professional only) */}
       {!isEnterprise && (
-        <div className="rounded-2xl p-6 mb-6" style={{ backgroundColor: '#1F1F1F', border: '1px solid #1DB954' }}>
-          <p className="text-base font-bold text-white mb-1">{lang === 'en' ? 'Need more?' : 'ተጨማሪ ይፈልጋሉ?'}</p>
-          <p className="text-sm text-[#B3B3B3] mb-4">
-            {lang === 'en' ? 'Enterprise includes full history, API, basket costing, and more.' : 'ኢንተርፕራይዝ ሙሉ ታሪክ፣ ኤፒአይ፣ የቅርጫት ወጪ እና ሌሎችን ያካትታል።'}
-          </p>
-          <button onClick={() => navigate({ id: 'enterprise-enquiry' })}
-            className="py-2.5 px-5 rounded-full text-sm font-semibold text-[#121212] bg-[#1ED760] hover:bg-[#1DB954] transition-colors">
-            {lang === 'en' ? 'Talk to us →' : 'አነጋግረን →'}
-          </button>
-        </div>
+        <Card className="mb-6 theme-highlight border-primary">
+          <CardHeader>
+            <CardTitle className="text-base">{lang === 'en' ? 'Need more?' : 'ተጨማሪ ይፈልጋሉ?'}</CardTitle>
+            <CardDescription>
+              {lang === 'en' ? 'Enterprise includes full history, API, basket costing, and more.' : 'ኢንተርፕራይዝ ሙሉ ታሪክ፣ ኤፒአይ፣ የቅርጫት ወጪ እና ሌሎችን ያካትታል።'}
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="pt-0">
+            <Button onClick={() => navigate({ id: 'enterprise-enquiry' })}>
+              {lang === 'en' ? 'Talk to us →' : 'አነጋግረን →'}
+            </Button>
+          </CardContent>
+        </Card>
       )}
 
-      {/* Account settings */}
-      <h3 className="text-sm font-bold text-[#B3B3B3] uppercase tracking-widest mb-4">{lang === 'en' ? 'Account settings' : 'የመለያ ቅንብሮች'}</h3>
-      <div className="bg-[#181818] rounded-2xl border border-[#282828] p-6 mb-6" style={{ boxShadow: '0 8px 8px rgba(0,0,0,0.3)' }}>
-        <Row l={lang === 'en' ? 'Name' : 'ስም'} v={account.fullName || '—'} />
-        <Row l={lang === 'en' ? 'Email' : 'ኢሜይል'} v={account.email} />
-        {account.organisation && <Row l={lang === 'en' ? 'Organisation' : 'ድርጅት'} v={account.organisation} />}
-        <Row l={lang === 'en' ? 'Member since' : 'አባል ከ'} v={account.createdAt} />
-      </div>
+      <p className={sectionTitle + ' mb-4'}>{lang === 'en' ? 'Account settings' : 'የመለያ ቅንብሮች'}</p>
+      <Card className="mb-6">
+        <CardContent className="divide-y pt-0">
+          <Row l={lang === 'en' ? 'Name' : 'ስም'} v={account.fullName || '—'} />
+          <Row l={lang === 'en' ? 'Email' : 'ኢሜይል'} v={account.email} />
+          {account.organisation && <Row l={lang === 'en' ? 'Organisation' : 'ድርጅት'} v={account.organisation} />}
+          <Row l={lang === 'en' ? 'Member since' : 'አባል ከ'} v={account.createdAt} />
+        </CardContent>
+      </Card>
 
-      <button onClick={doSignOut} className="text-sm text-[#B3B3B3] hover:text-[#F3727F] transition-colors">
+      <Button variant="ghost" onClick={doSignOut} className="text-muted-foreground hover:text-destructive">
         {lang === 'en' ? 'Sign out' : 'ውጣ'}
-      </button>
+      </Button>
     </div>
   )
 }

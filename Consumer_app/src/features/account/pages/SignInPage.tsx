@@ -1,7 +1,12 @@
 import { useState } from 'react'
 import type { Lang, NavScreen } from '@/data'
 import { signIn, startDemoTrial } from '@/data'
+import { Alert, AlertDescription } from '@/components/ui/alert'
+import { Button } from '@/components/ui/button'
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
 import { Field, TextInput } from '@/shared/components'
+
+const display = { fontFamily: "'SpotifyMixUITitle','CircularSp','Helvetica Neue',Helvetica,Arial,sans-serif" } as const
 
 export default function SignInPage({ lang, navigate }: { lang: Lang; navigate: (s: NavScreen) => void }) {
   const [email, setEmail] = useState('')
@@ -20,65 +25,80 @@ export default function SignInPage({ lang, navigate }: { lang: Lang; navigate: (
   }
 
   return (
-    <div className="max-w-md mx-auto px-6 py-14">
-      <button onClick={() => navigate({ id: 'home' })} className="text-sm text-[#B3B3B3] hover:text-[#1ED760] transition-colors mb-6">
+    <div className="max-w-md mx-auto px-6 py-8 lg:py-14">
+      <Button variant="ghost" size="sm" onClick={() => navigate({ id: 'home' })} className="mb-6 -ml-2">
         ← {lang === 'en' ? 'Home' : 'መነሻ'}
-      </button>
+      </Button>
 
-      <h1 className="font-bold text-white mb-8" style={{ fontFamily: "'SpotifyMixUITitle','CircularSp','Helvetica Neue',Helvetica,Arial,sans-serif", fontSize: 28, letterSpacing: '-0.03em' }}>
-        {lang === 'en' ? 'Sign in' : 'ግባ'}
-      </h1>
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-2xl font-bold" style={display}>
+            {lang === 'en' ? 'Sign in' : 'ግባ'}
+          </CardTitle>
+          <CardDescription>
+            {lang === 'en' ? 'Access your programme dashboard and exports.' : 'የፕሮግራም ዳሽቦርድዎን እና ማውጫዎችዎን ይድረሱ።'}
+          </CardDescription>
+        </CardHeader>
 
-      <div className="space-y-4">
-        <Field label={lang === 'en' ? 'Email' : 'ኢሜይል'}>
-          <TextInput type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="you@org.com"
-            onKeyDown={(e) => e.key === 'Enter' && submit()} />
-        </Field>
-
-        <Field label={lang === 'en' ? 'Password' : 'የይለፍ ቃል'}>
-          <div className="relative">
-            <TextInput type={showPw ? 'text' : 'password'} value={password} onChange={(e) => setPassword(e.target.value)} placeholder="••••••••" className="pr-10"
+        <CardContent className="space-y-4">
+          <Field label={lang === 'en' ? 'Email' : 'ኢሜይል'}>
+            <TextInput type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="you@org.com"
               onKeyDown={(e) => e.key === 'Enter' && submit()} />
-            <button type="button" onClick={() => setShowPw((s) => !s)}
-              className="absolute right-3 top-1/2 -translate-y-1/2 text-[#B3B3B3] hover:text-[#B3B3B3]" aria-label="Toggle password">👁</button>
-          </div>
-        </Field>
+          </Field>
 
-        <button className="text-sm text-[#1ED760] hover:underline">{lang === 'en' ? 'Forgot password?' : 'የይለፍ ቃል ረሱ?'}</button>
+          <Field label={lang === 'en' ? 'Password' : 'የይለፍ ቃል'}>
+            <div className="relative">
+              <TextInput type={showPw ? 'text' : 'password'} value={password} onChange={(e) => setPassword(e.target.value)} placeholder="••••••••" className="pr-10"
+                onKeyDown={(e) => e.key === 'Enter' && submit()} />
+              <Button type="button" variant="ghost" size="icon-sm" onClick={() => setShowPw((s) => !s)}
+                className="absolute right-1 top-1/2 -translate-y-1/2 text-muted-foreground" aria-label="Toggle password">
+                👁
+              </Button>
+            </div>
+          </Field>
 
-        {error && <p className="text-sm font-semibold text-[#F3727F]">{error}</p>}
+          <Button variant="link" className="h-auto p-0 text-sm">
+            {lang === 'en' ? 'Forgot password?' : 'የይለፍ ቃል ረሱ?'}
+          </Button>
 
-        <button onClick={submit}
-          className="w-full py-3 rounded-full text-sm font-semibold text-[#121212] bg-[#1ED760] hover:bg-[#1DB954] transition-colors">
-          {lang === 'en' ? 'Sign in  →' : 'ግባ  →'}
-        </button>
+          {error && (
+            <Alert variant="destructive">
+              <AlertDescription>{error}</AlertDescription>
+            </Alert>
+          )}
 
-        <button
-          type="button"
-          onClick={() => {
-            startDemoTrial()
-            navigate({ id: 'dashboard' })
-          }}
-          className="w-full py-3 rounded-full text-sm font-semibold text-white border border-[#282828] bg-[#181818] hover:border-[#1ED760] transition-colors"
-        >
-          {lang === 'en' ? 'Continue as demo Pro →' : 'Continue as demo Pro →'}
-        </button>
-      </div>
+          <Button className="w-full" size="lg" onClick={submit}>
+            {lang === 'en' ? 'Sign in →' : 'ግባ →'}
+          </Button>
 
-      <div className="mt-8 space-y-2 text-sm">
-        <p className="text-[#B3B3B3]">
-          {lang === 'en' ? 'No account?' : 'መለያ የለም?'}{' '}
-          <button onClick={() => navigate({ id: 'sign-up' })} className="font-semibold text-[#1ED760] hover:underline">
-            {lang === 'en' ? 'Start a free trial →' : 'ነጻ ሙከራ ጀምር →'}
-          </button>
-        </p>
-        <p className="text-[#B3B3B3]">
-          {lang === 'en' ? 'Need Enterprise access?' : 'የኢንተርፕራይዝ መዳረሻ ይፈልጋሉ?'}{' '}
-          <button onClick={() => navigate({ id: 'enterprise-enquiry' })} className="font-semibold text-[#1ED760] hover:underline">
-            {lang === 'en' ? 'Talk to us →' : 'አነጋግረን →'}
-          </button>
-        </p>
-      </div>
+          <Button
+            variant="secondary"
+            className="w-full"
+            size="lg"
+            onClick={() => {
+              startDemoTrial()
+              navigate({ id: 'dashboard' })
+            }}
+          >
+            {lang === 'en' ? 'Continue as demo Pro →' : 'Continue as demo Pro →'}
+          </Button>
+        </CardContent>
+
+        <CardFooter className="flex-col items-start gap-2 border-0 bg-transparent pt-0">
+          <p className="text-sm text-muted-foreground">
+            {lang === 'en' ? 'No account?' : 'መለያ የለም?'}{' '}
+            <Button variant="link" className="h-auto p-0" onClick={() => navigate({ id: 'sign-up' })}>
+              {lang === 'en' ? 'Start a free trial →' : 'ነጻ ሙከራ ጀምር →'}
+            </Button>
+          </p>
+          <p className="text-sm text-muted-foreground">
+            {lang === 'en' ? 'Need Enterprise access?' : 'የኢንተርፕራይዝ መዳረሻ ይፈልጋሉ?'}{' '}
+            <Button variant="link" className="h-auto p-0" onClick={() => navigate({ id: 'enterprise-enquiry' })}>
+              {lang === 'en' ? 'Talk to us →' : 'አነጋግረን →'}
+            </Button>
+          </p>
+        </CardFooter>
+      </Card>
     </div>
   )
 }

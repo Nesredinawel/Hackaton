@@ -3,6 +3,8 @@ import type { Lang, NavScreen } from '@/data'
 import { clearPaymentIdFromUrl, finalisePaymentReturn, readPaymentIdFromUrl } from '@/data'
 import { hydrateLivePrices } from '@/data/live'
 import { applyTheme, resolveTheme, type Theme } from '@/app/theme'
+import { Alert, AlertDescription } from '@/components/ui/alert'
+import { Button } from '@/components/ui/button'
 import Navbar from '@/features/navigation/components/Navbar'
 import Footer from '@/features/navigation/components/Footer'
 import AppRoutes from './routes'
@@ -70,33 +72,28 @@ export default function App() {
     <div className="min-h-screen flex flex-col theme-bg" style={{ fontFamily: "'SpotifyMixUI','CircularSp','Helvetica Neue',Helvetica,Arial,sans-serif" }}>
       <Navbar lang={lang} theme={theme} onThemeChange={setTheme} onToggleLang={toggleLang} navigate={navigate} />
       {payment && (
-        <div
-          role="status"
-          className="px-6 py-3 text-sm font-semibold text-center"
-          style={{
-            backgroundColor: payment.state === 'failed' ? '#3A1D1F' : '#1F1F1F',
-            borderBottom: `1px solid ${payment.state === 'failed' ? '#F3727F' : '#1DB954'}`,
-            color: payment.state === 'failed' ? '#F3727F' : '#FFFFFF',
-          }}
+        <Alert
+          variant={payment.state === 'failed' ? 'destructive' : 'default'}
+          className="rounded-none border-x-0 border-t-0 text-center justify-center"
         >
-          {payment.state === 'verifying' && (lang === 'en' ? 'Confirming your payment with Chapa…' : 'ክፍያዎን በChapa እያረጋገጥን ነው…')}
-          {payment.state === 'pending' && (lang === 'en'
-            ? 'Chapa has not confirmed this payment yet. It stays open — reopen your account page in a moment to check again.'
-            : 'Chapa ክፍያውን እስካሁን አላረጋገጠም። ክፍት ነው — ከጥቂት ጊዜ በኋላ የመለያ ገጽዎን ይክፈቱ።')}
-          {payment.state === 'failed' && (
-            <>
-              {lang === 'en' ? 'Payment was not completed: ' : 'ክፍያው አልተጠናቀቀም: '}
-              {payment.message}
-              <button
-                type="button"
-                onClick={() => setPayment(null)}
-                className="ml-3 underline hover:no-underline"
-              >
-                {lang === 'en' ? 'Dismiss' : 'ዝጋ'}
-              </button>
-            </>
-          )}
-        </div>
+          <AlertDescription className="text-center">
+            {payment.state === 'verifying' && (lang === 'en' ? 'Confirming your payment with Chapa…' : 'ክፍያዎን በChapa እያረጋገጥን ነው…')}
+            {payment.state === 'pending' && (lang === 'en'
+              ? 'Chapa has not confirmed this payment yet. It stays open — reopen your account page in a moment to check again.'
+              : 'Chapa ክፍያውን እስካሁን አላረጋገጠም። ክፍት ነው — ከጥቂት ጊዜ በኋላ የመለያ ገጽዎን ይክፈቱ።')}
+            {payment.state === 'failed' && (
+              <span className="inline-flex flex-wrap items-center justify-center gap-2">
+                <span>
+                  {lang === 'en' ? 'Payment was not completed: ' : 'ክፍያው አልተጠናቀቀም: '}
+                  {payment.message}
+                </span>
+                <Button type="button" variant="link" size="sm" onClick={() => setPayment(null)} className="h-auto p-0">
+                  {lang === 'en' ? 'Dismiss' : 'ዝጋ'}
+                </Button>
+              </span>
+            )}
+          </AlertDescription>
+        </Alert>
       )}
       <main className="flex-1">
         {/* Keep routes mounted — remounting on live hydrate was wiping dashboard state mid-demo. */}

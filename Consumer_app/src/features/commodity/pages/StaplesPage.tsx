@@ -3,6 +3,8 @@ import type { Lang, NavScreen, Published } from '@/data'
 import { COMMODITIES, MARKETS, getP } from '@/data'
 import { fetchAffordability, type AffordabilitySnapshot } from '@/data/live'
 import { fromApiCommodity } from '@/lib/api'
+import { Badge } from '@/components/ui/badge'
+import { Card, CardContent } from '@/components/ui/card'
 import { ItemCard, LiveDot, Btn } from '@/shared/components'
 
 const display = { fontFamily: "'SpotifyMixUITitle','CircularSp','Helvetica Neue',Helvetica,Arial,sans-serif" } as const
@@ -37,27 +39,27 @@ export default function StaplesPage({ lang, navigate }: { lang: Lang; navigate: 
               </p>
             </div>
             <div className="flex flex-wrap items-center gap-3">
-              <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full theme-card text-xs font-semibold theme-text-muted">
+              <Badge variant="outline" className="gap-2 px-4 py-2 text-xs font-semibold h-auto">
                 <LiveDot size="sm" />
                 <span>
-                  <span className="theme-text tabular-nums">{totalLive}</span>{' '}
+                  <span className="text-foreground tabular-nums">{totalLive}</span>{' '}
                   {en ? 'live prices' : '\u1240\u1325\u1273'}
                 </span>
-              </div>
+              </Badge>
               {afford?.change_pct != null && (
-                <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full theme-card text-xs font-semibold text-[var(--warning)]">
+                <Badge variant="outline" className="gap-2 px-4 py-2 text-xs font-semibold text-[var(--warning)] h-auto">
                   <span className="tabular-nums font-bold">
                     {afford.change_pct > 0 ? '+' : ''}{afford.change_pct}%
                   </span>
-                  <span className="theme-text-muted font-medium">
+                  <span className="text-muted-foreground font-medium">
                     {en ? 'basket MoM' : '\u1245\u122d\u132b\u1275 \u12c8\u122d'}
                   </span>
-                </div>
+                </Badge>
               )}
-              <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full theme-card text-xs font-semibold theme-text-muted">
-                <span className="theme-text tabular-nums">{MARKETS.length}</span>{' '}
+              <Badge variant="outline" className="gap-2 px-4 py-2 text-xs font-semibold h-auto">
+                <span className="text-foreground tabular-nums">{MARKETS.length}</span>{' '}
                 {en ? 'markets' : '\u1308\u1260\u12eb\u12ce\u127d'}
-              </div>
+              </Badge>
             </div>
           </div>
         </div>
@@ -97,21 +99,23 @@ export default function StaplesPage({ lang, navigate }: { lang: Lang; navigate: 
 
       <section className="border-t theme-border">
         <div className="max-w-6xl mx-auto px-6 lg:px-10 py-12">
-          <div className="rounded-2xl theme-card px-6 py-8 lg:px-8 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-            <div>
-              <p className="text-sm font-bold theme-text mb-1">
-                {en ? 'Need market context?' : '\u12e8\u1308\u1260\u12eb \u1218\u1228\u1303 \u12ed\u1348\u120d\u130b\u1209\u1362'}
-              </p>
-              <p className="text-xs theme-text-muted">
-                {en
-                  ? 'Compare areas with the price heatmap on Professional.'
-                  : '\u1260\u1355\u122e\u134c\u123d\u1293\u120d \u1202\u1275\u121b\u1355 \u1308\u1260\u12eb\u12ce\u127d\u1295 \u12eb\u12c8\u12f3\u12f5\u1229\u1362'}
-              </p>
-            </div>
-            <Btn variant="secondary" size="md" onClick={() => navigate({ id: 'map' })} className="shrink-0">
-              {en ? 'Explore map' : '\u12ab\u122d\u1273 \u12a0\u1235\u1235'}
-            </Btn>
-          </div>
+          <Card>
+            <CardContent className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 pt-0">
+              <div>
+                <p className="text-sm font-bold text-foreground mb-1">
+                  {en ? 'Need market context?' : '\u12e8\u1308\u1260\u12eb \u1218\u1228\u1303 \u12ed\u1348\u120d\u130b\u1209\u1362'}
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  {en
+                    ? 'Compare areas with the price heatmap on Professional.'
+                    : '\u1260\u1355\u122e\u134c\u123d\u1293\u120d \u1202\u1275\u121b\u1355 \u1308\u1260\u12eb\u12ce\u127d\u1295 \u12eb\u12c8\u12f3\u12f5\u1229\u1362'}
+                </p>
+              </div>
+              <Btn variant="secondary" size="md" onClick={() => navigate({ id: 'map' })} className="shrink-0">
+                {en ? 'Explore map' : '\u12ab\u122d\u1273 \u12a0\u1235\u1235'}
+              </Btn>
+            </CardContent>
+          </Card>
         </div>
       </section>
     </div>

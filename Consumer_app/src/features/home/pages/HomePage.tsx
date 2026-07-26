@@ -3,6 +3,9 @@ import type { Lang, NavScreen, Published } from '@/data'
 import { COMMODITIES, MARKETS, getP, getMarketLeaderboard, getItemLeaderboard, IMG, PLANS, PRO_MONTHLY_PRICE, canAccess } from '@/data'
 import { fetchAffordability, type AffordabilitySnapshot } from '@/data/live'
 import { fromApiCommodity } from '@/lib/api'
+import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
+import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
 import { LiveDot, Btn, ItemCard, ChangeBadge, ReportPriceCta, AgentBotCta, reportPriceCopy, agentBotCopy } from '@/shared/components'
 
 function heatColor(avg: number): string {
@@ -26,9 +29,9 @@ const display = { fontFamily: "'SpotifyMixUITitle','CircularSp','Helvetica Neue'
 
 function ProPill({ lang }: { lang: Lang }) {
   return (
-    <span className="ml-1.5 inline-flex px-1.5 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider bg-[var(--warning)] text-[#121212] align-middle">
+    <Badge variant="outline" className="ml-1.5 theme-badge-warning border-transparent text-[9px] font-bold uppercase tracking-wider align-middle">
       {lang === 'en' ? 'Pro' : 'ፕሮ'}
-    </span>
+    </Badge>
   )
 }
 
@@ -109,35 +112,34 @@ function PricingTeaserCard({ lang, navigate, plan }: {
         : { label: lang === 'en' ? 'Talk to us' : 'አነጋግረን', action: () => navigate({ id: 'enterprise-enquiry' }), variant: 'secondary' as const }
 
   return (
-    <div
-      className={`flex flex-col min-w-[260px] lg:min-w-0 lg:flex-1 snap-start rounded-2xl p-5 theme-card theme-card-interactive ${popular ? 'ring-2 ring-[#1ED760]' : ''}`}
-      style={popular ? { boxShadow: '0 8px 24px rgba(30,215,96,0.12)' } : undefined}
-    >
-      <div className="min-h-[28px] mb-3">
-        {popular && (
-          <span className="inline-flex px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider text-[#121212] bg-[#1ED760]">
-            {lang === 'en' ? 'Popular' : 'ተመራጭ'}
-          </span>
-        )}
-      </div>
-      <p className="text-sm font-bold theme-text mb-0.5">{name}</p>
-      <p className="text-2xl font-bold theme-text mb-4 tabular-nums leading-none" style={{ ...display, letterSpacing: '-0.03em' }}>
-        {tagline}
-      </p>
-      <ul className="space-y-2 mb-4">
-        {highlights.map(f => (
-          <li key={f.en} className="flex items-start gap-2 text-sm theme-text-muted">
-            <span className="theme-accent mt-0.5 shrink-0">✓</span>
-            <span>{lang === 'am' ? f.am : f.en}</span>
-          </li>
-        ))}
-      </ul>
-      <div className="mt-auto pt-1">
+    <Card className={`flex flex-col min-w-[260px] lg:min-w-0 lg:flex-1 snap-start ${popular ? 'ring-2 ring-primary' : ''}`}>
+      <CardHeader>
+        <div className="min-h-[28px]">
+          {popular && (
+            <Badge>{lang === 'en' ? 'Popular' : 'ተመራጭ'}</Badge>
+          )}
+        </div>
+        <CardTitle className="text-sm font-bold">{name}</CardTitle>
+        <p className="text-2xl font-bold tabular-nums leading-none text-foreground" style={{ ...display, letterSpacing: '-0.03em' }}>
+          {tagline}
+        </p>
+      </CardHeader>
+      <CardContent className="flex-1 pt-0">
+        <ul className="space-y-2">
+          {highlights.map(f => (
+            <li key={f.en} className="flex items-start gap-2 text-sm text-muted-foreground">
+              <span className="text-primary mt-0.5 shrink-0">✓</span>
+              <span>{lang === 'am' ? f.am : f.en}</span>
+            </li>
+          ))}
+        </ul>
+      </CardContent>
+      <CardFooter className="border-0 bg-transparent pt-0">
         <Btn variant={cta.variant} size="md" fullWidth onClick={cta.action}>
           {cta.label}
         </Btn>
-      </div>
-    </div>
+      </CardFooter>
+    </Card>
   )
 }
 
@@ -235,51 +237,49 @@ export default function HomePage({ lang, navigate }: { lang: Lang; navigate: (s:
       {/* Paid value teaser — full decision layer lives on Pro dashboard */}
       <section className="border-t theme-border">
         <div className="max-w-6xl mx-auto px-6 lg:px-10 py-12 lg:py-16">
-          <div className="rounded-2xl theme-card p-6 lg:p-8 flex flex-col lg:flex-row lg:items-center gap-6 lg:gap-10">
-            <div className="flex-1 min-w-0">
-              <p className="text-[11px] font-bold uppercase tracking-[0.14em] theme-accent mb-2">
-                For programmes
-              </p>
-              <h2 className="theme-text text-xl lg:text-2xl font-bold mb-2" style={display}>
-                Programme dashboard
-              </h2>
-              <p className="text-sm theme-text-muted leading-relaxed mb-4 max-w-xl">
-                Basket inflation, coverage honesty, cited cash-assistance guidance, and market pressure — what paying teams use to set transfers.
-              </p>
-              {afford?.status === 'published' && afford.change_pct != null && (
-                <div className="flex flex-wrap items-center gap-2 mb-4">
-                  <span className="text-sm theme-text-muted">
-                    Basket now {afford.cost_now != null ? `${Math.round(afford.cost_now).toLocaleString()} ETB` : '—'}
-                  </span>
-                  <ChangeBadge pct={afford.change_pct} size="sm" suffix="MoM" />
-                  {afford.band && (
-                    <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full theme-badge-warning">
-                      {afford.band}
+          <Card>
+            <CardContent className="flex flex-col lg:flex-row lg:items-center gap-6 lg:gap-10 pt-0">
+              <div className="flex-1 min-w-0">
+                <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-primary mb-2">
+                  For programmes
+                </p>
+                <h2 className="text-foreground text-xl lg:text-2xl font-bold mb-2" style={display}>
+                  Programme dashboard
+                </h2>
+                <p className="text-sm text-muted-foreground leading-relaxed mb-4 max-w-xl">
+                  Basket inflation, coverage honesty, cited cash-assistance guidance, and market pressure — what paying teams use to set transfers.
+                </p>
+                {afford?.status === 'published' && afford.change_pct != null && (
+                  <div className="flex flex-wrap items-center gap-2 mb-4">
+                    <span className="text-sm text-muted-foreground">
+                      Basket now {afford.cost_now != null ? `${Math.round(afford.cost_now).toLocaleString()} ETB` : '—'}
                     </span>
-                  )}
-                </div>
-              )}
-              <Btn
-                variant="primary"
-                size="md"
-                onClick={() => navigate(canAccess('dashboard').allowed ? { id: 'dashboard' } : { id: 'sign-up' })}
-              >
-                {canAccess('dashboard').allowed ? 'Open dashboard →' : 'Unlock with Professional →'}
-              </Btn>
-            </div>
-            <ul className="shrink-0 space-y-2 text-sm theme-text-muted lg:w-64">
-              {[
-                'Coverage: published vs insufficient',
-                'Cited transfer uplift + impact',
-                'Map & heatmap for area pressure',
-              ].map(item => (
-                <li key={item} className="flex items-start gap-2">
-                  <span className="theme-accent mt-0.5">✓</span>
-                  <span>{item}</span>
-                </li>
-              ))}
-            </ul>
-          </div>
+                    <ChangeBadge pct={afford.change_pct} size="sm" suffix="MoM" />
+                    {afford.band && (
+                      <Badge variant="outline" className="theme-badge-warning border-transparent text-[10px] font-bold uppercase tracking-wider">
+                        {afford.band}
+                      </Badge>
+                    )}
+                  </div>
+                )}
+                <Button onClick={() => navigate(canAccess('dashboard').allowed ? { id: 'dashboard' } : { id: 'sign-up' })}>
+                  {canAccess('dashboard').allowed ? 'Open dashboard →' : 'Unlock with Professional →'}
+                </Button>
+              </div>
+              <ul className="shrink-0 space-y-2 text-sm text-muted-foreground lg:w-64">
+                {[
+                  'Coverage: published vs insufficient',
+                  'Cited transfer uplift + impact',
+                  'Map & heatmap for area pressure',
+                ].map(item => (
+                  <li key={item} className="flex items-start gap-2">
+                    <span className="text-primary mt-0.5">✓</span>
+                    <span>{item}</span>
+                  </li>
+                ))}
+              </ul>
+            </CardContent>
+          </Card>
         </div>
       </section>
 
@@ -354,12 +354,12 @@ export default function HomePage({ lang, navigate }: { lang: Lang; navigate: (s:
                   {!mapUnlocked && <ProPill lang={lang} />}
                 </Btn>
               </div>
-              <div className="rounded-2xl overflow-hidden theme-card">
+              <Card className="overflow-hidden p-0 gap-0">
                 {marketBoard.map((entry, i) => (
                   <button
                     key={entry.market.id}
                     onClick={() => navigate({ id: 'map' })}
-                    className={`w-full flex items-center gap-3 px-5 py-4 text-left transition-colors duration-100 hover:bg-[var(--surface-2)] ${i < marketBoard.length - 1 ? 'border-b theme-border' : ''}`}
+                    className={`w-full flex items-center gap-3 px-5 py-4 text-left transition-colors duration-100 hover:bg-muted/50 ${i < marketBoard.length - 1 ? 'border-b border-border' : ''}`}
                   >
                     <MedalBadge rank={entry.rank} />
                     <div className="flex-1 min-w-0">
@@ -374,7 +374,7 @@ export default function HomePage({ lang, navigate }: { lang: Lang; navigate: (s:
                     </span>
                   </button>
                 ))}
-              </div>
+              </Card>
             </div>
 
             <div>
@@ -384,12 +384,12 @@ export default function HomePage({ lang, navigate }: { lang: Lang; navigate: (s:
                   title={lang === 'en' ? 'Items by avg price' : 'በአማካይ ዋጋ'}
                 />
               </div>
-              <div className="rounded-2xl overflow-hidden theme-card">
+              <Card className="overflow-hidden p-0 gap-0">
                 {itemBoard.map((entry, i) => (
                   <button
                     key={entry.commodity.id}
                     onClick={() => navigate({ id: 'commodity-overview', commodityId: entry.commodity.id })}
-                    className={`w-full flex items-center gap-3 px-5 py-4 text-left transition-colors duration-100 hover:bg-[var(--surface-2)] ${i < itemBoard.length - 1 ? 'border-b theme-border' : ''}`}
+                    className={`w-full flex items-center gap-3 px-5 py-4 text-left transition-colors duration-100 hover:bg-muted/50 ${i < itemBoard.length - 1 ? 'border-b border-border' : ''}`}
                   >
                     <MedalBadge rank={entry.rank} />
                     <span className="text-lg flex-shrink-0">{entry.commodity.emoji}</span>
@@ -402,7 +402,7 @@ export default function HomePage({ lang, navigate }: { lang: Lang; navigate: (s:
                     </p>
                   </button>
                 ))}
-              </div>
+              </Card>
             </div>
           </div>
         </div>
@@ -422,12 +422,12 @@ export default function HomePage({ lang, navigate }: { lang: Lang; navigate: (s:
             { n: '02', en: 'Report prices from your market in ~5 seconds.', am: 'ከገበያዎ ዋጋ በ~5 ሰኮንድ ዘግቡ።' },
             { n: '03', en: '3+ verified reports in 72 hours → published.', am: '72 ሰዓት ውስጥ 3+ ሪፖርቶች → ይታያል።' },
           ].map(s => (
-            <div key={s.n} className="theme-card rounded-2xl p-6 lg:p-7">
-              <span className="inline-flex w-9 h-9 rounded-full items-center justify-center text-[11px] font-bold text-[#121212] bg-[#1ED760] mb-4">
-                {s.n}
-              </span>
-              <p className="text-sm theme-text-muted leading-relaxed">{lang === 'am' ? s.am : s.en}</p>
-            </div>
+            <Card key={s.n}>
+              <CardContent className="pt-0">
+                <Badge className="mb-4">{s.n}</Badge>
+                <p className="text-sm text-muted-foreground leading-relaxed">{lang === 'am' ? s.am : s.en}</p>
+              </CardContent>
+            </Card>
           ))}
         </div>
       </section>
@@ -514,32 +514,29 @@ export default function HomePage({ lang, navigate }: { lang: Lang; navigate: (s:
       {/* ── Bottom CTA band ── */}
       <section className="border-t theme-border">
         <div className="max-w-6xl mx-auto px-6 lg:px-10 py-16 lg:py-20">
-          <div className="rounded-2xl theme-card px-8 py-10 lg:px-12 lg:py-12 flex flex-col lg:flex-row lg:items-center lg:justify-between gap-8">
-            <div className="max-w-lg">
-              <p className="text-[11px] font-bold uppercase tracking-[0.14em] theme-accent mb-2">
-                {lang === 'en' ? 'Start free' : 'በነጻ ጀምር'}
-              </p>
-              <h2 className="theme-text text-2xl font-bold mb-2" style={display}>
-                {lang === 'en' ? 'Check any price today. Upgrade when you need depth.' : 'የዛሬን ዋጋ ይመልከቱ። ጥልቀት ሲፈልጉ ያሳድጉ።'}
-              </h2>
-              <p className="text-sm theme-text-muted leading-relaxed">
-                {lang === 'en' ? 'Public access is free forever. Professional plans from $29/month.' : 'ሕዝባዊ መዳረሻ ለዘላለም ነጻ። ፕሮፌሽናል ከ$29/ወር።'}
-              </p>
-            </div>
-            <div className="flex flex-col sm:flex-row gap-3 shrink-0 w-full lg:w-auto">
-              <Btn
-                variant="primary"
-                size="lg"
-                onClick={() => navigate({ id: 'staples' })}
-                className="sm:min-w-[160px]"
-              >
-                {lang === 'en' ? 'Browse staples' : 'ምግቦችን አስስ'}
-              </Btn>
-              <Btn variant="secondary" size="lg" onClick={() => navigate({ id: 'sign-up' })} className="sm:min-w-[160px]">
-                {lang === 'en' ? 'Start Pro trial' : 'ፕሮ ሙከራ ጀምር'}
-              </Btn>
-            </div>
-          </div>
+          <Card>
+            <CardContent className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-8 pt-0">
+              <div className="max-w-lg">
+                <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-primary mb-2">
+                  {lang === 'en' ? 'Start free' : 'በነጻ ጀምር'}
+                </p>
+                <h2 className="text-foreground text-2xl font-bold mb-2" style={display}>
+                  {lang === 'en' ? 'Check any price today. Upgrade when you need depth.' : 'የዛሬን ዋጋ ይመልከቱ። ጥልቀት ሲፈልጉ ያሳድጉ።'}
+                </h2>
+                <p className="text-sm text-muted-foreground leading-relaxed">
+                  {lang === 'en' ? 'Public access is free forever. Professional plans from $29/month.' : 'ሕዝባዊ መዳረሻ ለዘላለም ነጻ። ፕሮፌሽናል ከ$29/ወር።'}
+                </p>
+              </div>
+              <div className="flex flex-col sm:flex-row gap-3 shrink-0 w-full lg:w-auto">
+                <Button size="lg" onClick={() => navigate({ id: 'staples' })} className="sm:min-w-[160px]">
+                  {lang === 'en' ? 'Browse staples' : 'ምግቦችን አስስ'}
+                </Button>
+                <Button variant="secondary" size="lg" onClick={() => navigate({ id: 'sign-up' })} className="sm:min-w-[160px]">
+                  {lang === 'en' ? 'Start Pro trial' : 'ፕሮ ሙከራ ጀምር'}
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
         </div>
       </section>
     </div>

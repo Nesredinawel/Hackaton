@@ -1,7 +1,13 @@
 import { useState } from 'react'
 import type { Lang, NavScreen } from '@/data'
 import { signUp } from '@/data'
+import { Alert, AlertDescription } from '@/components/ui/alert'
+import { Button } from '@/components/ui/button'
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
+import { Separator } from '@/components/ui/separator'
 import { Field, TextInput } from '@/shared/components'
+
+const display = { fontFamily: "'SpotifyMixUITitle','CircularSp','Helvetica Neue',Helvetica,Arial,sans-serif" } as const
 
 export default function SignUpPage({ lang, navigate }: { lang: Lang; navigate: (s: NavScreen) => void }) {
   const [fullName, setFullName] = useState('')
@@ -30,71 +36,79 @@ export default function SignUpPage({ lang, navigate }: { lang: Lang; navigate: (
   }
 
   return (
-    <div className="max-w-md mx-auto px-6 py-14">
-      <button onClick={() => navigate({ id: 'pricing' })} className="text-sm text-[#B3B3B3] hover:text-[#1ED760] transition-colors mb-6">
+    <div className="max-w-md mx-auto px-6 py-8 lg:py-14">
+      <Button variant="ghost" size="sm" onClick={() => navigate({ id: 'pricing' })} className="mb-6 -ml-2">
         ← {lang === 'en' ? 'Plans' : 'ዕቅዶች'}
-      </button>
+      </Button>
 
-      <h1 className="font-bold text-white mb-2" style={{ fontFamily: "'SpotifyMixUITitle','CircularSp','Helvetica Neue',Helvetica,Arial,sans-serif", fontSize: 28, letterSpacing: '-0.03em' }}>
-        {lang === 'en' ? 'Start Professional' : 'ፕሮፌሽናል ጀምር'}
-      </h1>
-      <p className="text-sm text-[#B3B3B3] mb-8 leading-relaxed">
-        {lang === 'en' ? '14-day free trial. No card required to start.' : 'የ14 ቀን ነጻ ሙከራ። ለመጀመር ካርድ አያስፈልግም።'}
-      </p>
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-2xl font-bold" style={display}>
+            {lang === 'en' ? 'Start Professional' : 'ፕሮፌሽናል ጀምር'}
+          </CardTitle>
+          <CardDescription>
+            {lang === 'en' ? '14-day free trial. No card required to start.' : 'የ14 ቀን ነጻ ሙከራ። ለመጀመር ካርድ አያስፈልግም።'}
+          </CardDescription>
+        </CardHeader>
 
-      <div className="space-y-4">
-        <Field label={lang === 'en' ? 'Full name' : 'ሙሉ ስም'}>
-          <TextInput value={fullName} onChange={(e) => setFullName(e.target.value)} placeholder={lang === 'en' ? 'Tigist Alemu' : 'ትዕግስት ዓለሙ'} />
-        </Field>
+        <CardContent className="space-y-4">
+          <Field label={lang === 'en' ? 'Full name' : 'ሙሉ ስም'}>
+            <TextInput value={fullName} onChange={(e) => setFullName(e.target.value)} placeholder={lang === 'en' ? 'Tigist Alemu' : 'ትዕግስት ዓለሙ'} />
+          </Field>
 
-        <Field label={lang === 'en' ? 'Email' : 'ኢሜይል'}>
-          <TextInput type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="you@org.com" />
-        </Field>
+          <Field label={lang === 'en' ? 'Email' : 'ኢሜይል'}>
+            <TextInput type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="you@org.com" />
+          </Field>
 
-        <Field label={lang === 'en' ? 'Password' : 'የይለፍ ቃል'} hint={lang === 'en' ? 'At least 6 characters' : 'ቢያንስ 6 ቁምፊዎች'}>
-          <div className="relative">
-            <TextInput type={showPw ? 'text' : 'password'} value={password} onChange={(e) => setPassword(e.target.value)} placeholder="••••••••" className="pr-10" />
-            <button type="button" onClick={() => setShowPw((s) => !s)}
-              className="absolute right-3 top-1/2 -translate-y-1/2 text-[#B3B3B3] hover:text-[#B3B3B3]" aria-label="Toggle password">
-              👁
-            </button>
-          </div>
-        </Field>
+          <Field label={lang === 'en' ? 'Password' : 'የይለፍ ቃል'} hint={lang === 'en' ? 'At least 6 characters' : 'ቢያንስ 6 ቁምፊዎች'}>
+            <div className="relative">
+              <TextInput type={showPw ? 'text' : 'password'} value={password} onChange={(e) => setPassword(e.target.value)} placeholder="••••••••" className="pr-10" />
+              <Button type="button" variant="ghost" size="icon-sm" onClick={() => setShowPw((s) => !s)}
+                className="absolute right-1 top-1/2 -translate-y-1/2 text-muted-foreground" aria-label="Toggle password">
+                👁
+              </Button>
+            </div>
+          </Field>
 
-        <Field label={lang === 'en' ? 'Organisation (optional)' : 'ድርጅት (አማራጭ)'}>
-          <TextInput value={organisation} onChange={(e) => setOrganisation(e.target.value)} placeholder={lang === 'en' ? 'e.g. WFP Ethiopia' : 'ለምሳሌ WFP ኢትዮጵያ'} />
-        </Field>
+          <Field label={lang === 'en' ? 'Organisation (optional)' : 'ድርጅት (አማራጭ)'}>
+            <TextInput value={organisation} onChange={(e) => setOrganisation(e.target.value)} placeholder={lang === 'en' ? 'e.g. WFP Ethiopia' : 'ለምሳሌ WFP ኢትዮጵያ'} />
+          </Field>
 
-        <label className="flex items-start gap-2.5 cursor-pointer">
-          <input type="checkbox" checked={agree} onChange={(e) => setAgree(e.target.checked)}
-            className="mt-0.5 w-4 h-4 accent-[#1ED760]" />
-          <span className="text-sm text-[#B3B3B3]">
-            {lang === 'en' ? 'I agree to the Terms of Use and Privacy Policy' : 'የአጠቃቀም ውል እና የግላዊነት ፖሊሲ እቀበላለሁ'}
-          </span>
-        </label>
+          <label className="flex items-start gap-2.5 cursor-pointer">
+            <input type="checkbox" checked={agree} onChange={(e) => setAgree(e.target.checked)}
+              className="mt-0.5 w-4 h-4 accent-primary" />
+            <span className="text-sm text-muted-foreground">
+              {lang === 'en' ? 'I agree to the Terms of Use and Privacy Policy' : 'የአጠቃቀም ውል እና የግላዊነት ፖሊሲ እቀበላለሁ'}
+            </span>
+          </label>
 
-        {error && <p className="text-sm font-semibold text-[#F3727F]">{error}</p>}
+          {error && (
+            <Alert variant="destructive">
+              <AlertDescription>{error}</AlertDescription>
+            </Alert>
+          )}
 
-        <button onClick={submit} disabled={!canSubmit}
-          className="w-full py-3 rounded-full text-sm font-semibold text-[#121212] bg-[#1ED760] hover:bg-[#1DB954] transition-colors disabled:opacity-40 disabled:cursor-not-allowed">
-          {lang === 'en' ? 'Create account  →' : 'መለያ ፍጠር  →'}
-        </button>
+          <Button className="w-full" size="lg" onClick={submit} disabled={!canSubmit}>
+            {lang === 'en' ? 'Create account →' : 'መለያ ፍጠር →'}
+          </Button>
 
-        <p className="text-sm text-[#B3B3B3] text-center">
-          {lang === 'en' ? 'Already have an account?' : 'መለያ አለዎት?'}{' '}
-          <button onClick={() => navigate({ id: 'sign-in' })} className="font-semibold text-[#1ED760] hover:underline">
-            {lang === 'en' ? 'Sign in →' : 'ግባ →'}
-          </button>
-        </p>
-      </div>
+          <p className="text-sm text-muted-foreground text-center">
+            {lang === 'en' ? 'Already have an account?' : 'መለያ አለዎት?'}{' '}
+            <Button variant="link" className="h-auto p-0" onClick={() => navigate({ id: 'sign-in' })}>
+              {lang === 'en' ? 'Sign in →' : 'ግባ →'}
+            </Button>
+          </p>
+        </CardContent>
 
-      <div className="mt-8 pt-6 border-t border-[#282828]">
-        <p className="text-[13px] text-[#B3B3B3] leading-relaxed">
-          {lang === 'en'
-            ? 'After your 14-day trial, $29/month or $290/year. Cancel anytime.'
-            : 'ከ14 ቀን ሙከራ በኋላ፣ $29/ወር ወይም $290/ዓመት። በማንኛውም ጊዜ ይሰርዙ።'}
-        </p>
-      </div>
+        <CardFooter className="flex-col items-start border-0 bg-transparent pt-0">
+          <Separator className="mb-4" />
+          <p className="text-[13px] text-muted-foreground leading-relaxed">
+            {lang === 'en'
+              ? 'After your 14-day trial, $29/month or $290/year. Cancel anytime.'
+              : 'ከ14 ቀን ሙከራ በኋላ፣ $29/ወር ወይም $290/ዓመት። በማንኛውም ጊዜ ይሰርዙ።'}
+          </p>
+        </CardFooter>
+      </Card>
     </div>
   )
 }

@@ -1,6 +1,8 @@
 import { useState } from 'react'
 import type { Lang, NavScreen, Published } from '@/data'
 import { MARKETS, getC, getP } from '@/data'
+import { Button } from '@/components/ui/button'
+import { Card, CardContent } from '@/components/ui/card'
 import { ReportPriceBand, LiveDot, ChangeBadge, vsAvgPct } from '@/shared/components'
 
 const display = { fontFamily: "'SpotifyMixUITitle','CircularSp','Helvetica Neue',Helvetica,Arial,sans-serif" } as const
@@ -86,13 +88,15 @@ export default function CommodityOverviewPage({ lang, commodityId, navigate }: {
         <div className="flex flex-wrap items-center gap-2 mb-5">
           <span className="theme-eyebrow">{lang === 'en' ? 'Sort by' : 'ደርድር'}:</span>
           {([['price-asc', lang === 'en' ? 'Price: low → high' : 'ዋጋ: ቅነስ → ከፍተኛ'], ['price-desc', lang === 'en' ? 'Price: high → low' : 'ዋጋ: ከፍተኛ → ቅነስ'], ['name', 'A-Z']] as const).map(([val, label]) => (
-            <button
+            <Button
               key={val}
+              type="button"
+              variant={sort === val ? 'default' : 'outline'}
+              size="sm"
               onClick={() => setSort(val)}
-              className={`theme-chip ${sort === val ? 'theme-chip-active' : ''}`}
             >
               {label}
-            </button>
+            </Button>
           ))}
         </div>
 

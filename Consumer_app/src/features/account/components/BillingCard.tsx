@@ -1,6 +1,9 @@
 import { useEffect, useState } from 'react'
 import type { BillingPlan, Lang, SubscriptionPlanInfo } from '@/data'
 import { fetchPlans, formatBirr, startChapaCheckout } from '@/data'
+import { Alert, AlertDescription } from '@/components/ui/alert'
+import { Button } from '@/components/ui/button'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 
 /** Amounts come from the API rather than the UI constants, so the price shown is the
     price Chapa will actually charge. */
@@ -40,46 +43,51 @@ export default function BillingCard({ lang }: { lang: Lang }) {
   ]
 
   return (
-    <div className="bg-[#181818] rounded-2xl border border-[#282828] p-6 mb-6" style={{ boxShadow: '0 8px 8px rgba(0,0,0,0.3)' }}>
-      <p className="text-base font-bold text-white mb-1">
-        {lang === 'en' ? 'Subscription' : 'ምዝገባ'}
-      </p>
-      <p className="text-sm text-[#B3B3B3] mb-4">
-        {lang === 'en'
-          ? 'Pay with Chapa — telebirr, CBE Birr, or card. You will be redirected to Chapa and returned here once it completes.'
-          : 'በChapa ይክፈሉ — ተለብር፣ CBE ብር ወይም ካርድ። ወደ Chapa ተመርተው ሲጠናቀቅ ወደዚህ ይመለሳሉ።'}
-      </p>
+    <Card className="mb-6">
+      <CardHeader>
+        <CardTitle className="text-base">
+          {lang === 'en' ? 'Subscription' : 'ምዝገባ'}
+        </CardTitle>
+        <CardDescription>
+          {lang === 'en'
+            ? 'Pay with Chapa — telebirr, CBE Birr, or card. You will be redirected to Chapa and returned here once it completes.'
+            : 'በChapa ይክፈሉ — ተለብር፣ CBE ብር ወይም ካርድ። ወደ Chapa ተመርተው ሲጠናቀቅ ወደዚህ ይመለሳሉ።'}
+        </CardDescription>
+      </CardHeader>
 
-      <div className="flex flex-col sm:flex-row gap-3">
-        {options.map((option) => {
-          const amount = amountFor(option.plan)
-          return (
-            <button
-              key={option.plan}
-              type="button"
-              disabled={busy !== null}
-              onClick={() => void pay(option.plan)}
-              className="flex-1 rounded-2xl border border-[#282828] px-5 py-4 text-left transition-colors hover:border-[#1ED760] disabled:opacity-60 disabled:hover:border-[#282828]"
-            >
-              <span className="block text-sm font-bold text-white">
-                {busy === option.plan
-                  ? (lang === 'en' ? 'Opening Chapa…' : 'Chapa እየተከፈተ…')
-                  : (lang === 'am' ? option.labelAm : option.labelEn)}
-              </span>
-              <span className="block text-lg font-bold text-[#1ED760] mt-1">
-                {amount ? `${amount} ETB` : '—'}
-              </span>
-              <span className="block text-xs text-[#B3B3B3] mt-0.5">{option.noteEn}</span>
-            </button>
-          )
-        })}
-      </div>
+      <CardContent className="space-y-4 pt-0">
+        <div className="flex flex-col sm:flex-row gap-3">
+          {options.map((option) => {
+            const amount = amountFor(option.plan)
+            return (
+              <Button
+                key={option.plan}
+                type="button"
+                variant="outline"
+                disabled={busy !== null}
+                onClick={() => void pay(option.plan)}
+                className="flex-1 h-auto flex-col items-start rounded-xl px-5 py-4 text-left hover:border-primary"
+              >
+                <span className="block text-sm font-bold text-foreground">
+                  {busy === option.plan
+                    ? (lang === 'en' ? 'Opening Chapa…' : 'Chapa እየተከፈተ…')
+                    : (lang === 'am' ? option.labelAm : option.labelEn)}
+                </span>
+                <span className="block text-lg font-bold text-primary mt-1">
+                  {amount ? `${amount} ETB` : '—'}
+                </span>
+                <span className="block text-xs text-muted-foreground mt-0.5 font-normal">{option.noteEn}</span>
+              </Button>
+            )
+          })}
+        </div>
 
-      {error && (
-        <p className="mt-4 text-sm" style={{ color: '#F3727F' }}>
-          {error}
-        </p>
-      )}
-    </div>
+        {error && (
+          <Alert variant="destructive">
+            <AlertDescription>{error}</AlertDescription>
+          </Alert>
+        )}
+      </CardContent>
+    </Card>
   )
 }
