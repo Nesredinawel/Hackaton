@@ -7,7 +7,6 @@ import {
   TrendingUp,
   Activity,
   CircleDollarSign,
-  Clock,
   CheckCircle2,
 } from 'lucide-react'
 import {
@@ -119,10 +118,10 @@ export default function DashboardPage({ refreshKey, onRefresh }: { refreshKey: n
       </Card>
 
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        <StatCard label="Pending agents" value={stats.pendingAgents} hint={`${stats.approvedAgents} approved`} delta={{ value: '12%' }} icon={Users} accent="amber" />
-        <StatCard label="Subscriber accounts" value={stats.totalAccounts} hint={`${stats.trialAccounts} trial · ${stats.activeAccounts} active`} delta={{ value: '8%' }} icon={CreditCard} accent="green" />
-        <StatCard label="Enterprise leads" value={stats.newEnquiries} hint={`${stats.totalEnquiries} in pipeline`} delta={{ value: '5%' }} icon={Building2} accent="blue" />
-        <StatCard label="Pending payouts" value={stats.pendingRedemptions} hint={`${stats.totalRedemptionPoints.toLocaleString()} pts volume`} delta={{ value: '3%', positive: false }} icon={Wallet} accent="rose" />
+        <StatCard label="Pending agents" value={stats.pendingAgents} hint={`${stats.approvedAgents} approved`} icon={Users} accent="amber" />
+        <StatCard label="Subscriber accounts" value={stats.totalAccounts} hint={`${stats.trialAccounts} trial · ${stats.activeAccounts} active`} icon={CreditCard} accent="green" />
+        <StatCard label="Enterprise leads" value={stats.newEnquiries} hint={`${stats.totalEnquiries} in pipeline`} icon={Building2} accent="blue" />
+        <StatCard label="Pending payouts" value={stats.pendingRedemptions} hint={`${stats.totalRedemptionPoints.toLocaleString()} pts volume`} icon={Wallet} accent="rose" />
       </div>
 
       <div className="grid gap-4 lg:grid-cols-3">
@@ -240,9 +239,8 @@ export default function DashboardPage({ refreshKey, onRefresh }: { refreshKey: n
         </CardContent>
       </Card>
 
-      <div className="grid gap-4 sm:grid-cols-3">
+      <div className="grid gap-4 sm:grid-cols-2">
         {[
-          { icon: Clock, label: 'Avg. review time', value: '4.2 hrs' },
           { icon: CheckCircle2, label: 'Completed payouts', value: stats.completedRedemptions },
           { icon: Users, label: 'Active agents', value: stats.approvedAgents },
         ].map(({ icon: Icon, label, value }) => (

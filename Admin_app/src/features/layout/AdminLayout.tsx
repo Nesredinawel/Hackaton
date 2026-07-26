@@ -10,6 +10,8 @@ const PAGE_DESC: Record<AdminScreen['id'], string> = {
   dashboard: 'Real-time overview of platform health and operations.',
   agents: 'Review and approve field reporter applications.',
   accounts: 'Manage subscriber tiers and billing status.',
+  payments: 'Chapa subscription transactions and who paid them.',
+  plans: 'Configure subscription plans, prices, and limits.',
   enterprise: 'Track enterprise sales pipeline and enquiries.',
   redemptions: 'Process agent TeleBirr payout requests.',
 }
@@ -18,6 +20,8 @@ const PAGE_TITLE: Record<AdminScreen['id'], string> = {
   dashboard: 'Dashboard',
   agents: 'Agents',
   accounts: 'Accounts',
+  payments: 'Payments',
+  plans: 'Plans',
   enterprise: 'Enterprise',
   redemptions: 'Redemptions',
 }

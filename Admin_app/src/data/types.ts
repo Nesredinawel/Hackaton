@@ -80,6 +80,8 @@ export type AdminScreen =
   | { id: 'dashboard' }
   | { id: 'agents' }
   | { id: 'accounts' }
+  | { id: 'payments' }
+  | { id: 'plans' }
   | { id: 'enterprise' }
   | { id: 'redemptions' }
 

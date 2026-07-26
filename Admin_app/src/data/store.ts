@@ -10,16 +10,22 @@ import type {
 import {
   approveApplication,
   clearTokens,
+  fetchAgentScore,
   fetchDashboard,
   getAccessToken,
+  listAdminSubscriptions,
   listApplications,
+  listPayments,
   listRedeemRequests,
   login,
   rejectApplication,
   resolveRedeem,
   saveSession,
   savedDisplayName,
+  type AgentApplicationStatus,
+  type ApiAdminSubscription,
   type ApiApplication,
+  type PaymentStatus,
 } from '@/lib/api'
 
 /* Shared localStorage keys — same as Consumer_app demo store */
@@ -119,15 +125,51 @@ function mapApplication(row: ApiApplication): AgentProfile {
   }
 }
 
-export async function fetchPendingApplications(): Promise<AgentProfile[]> {
+export type AgentWork = {
+  score: number
+  pendingCount: number
+  acceptedCount: number
+  flaggedCount: number
+  redeemedTotal: number
+  estimatedBirr: number
+  currencyCode: string
+  banned: boolean
+  banReason: string | null
+  statusLabel: string
+}
+
+export type AgentRow = AgentProfile & { work: AgentWork | null }
+
+/**
+ * Contribution counters live on the contributor record, keyed by Telegram id, so
+ * they are fetched per agent. An agent who has never submitted has no contributor
+ * row yet, which surfaces as `work: null` rather than as fabricated zeroes.
+ */
+async function loadWork(telegramId: string): Promise<AgentWork | null> {
+  if (!telegramId) return null
   try {
-    const rows = await listApplications('pending')
-    return rows.map(mapApplication)
-  } catch (error) {
-    console.warn('fetchPendingApplications failed', error)
-    const local = getAgentProfile()
-    return local && local.status === 'pending' ? [local] : []
+    const score = await fetchAgentScore(telegramId)
+    return {
+      score: score.score,
+      pendingCount: score.pending_count,
+      acceptedCount: score.accepted_count,
+      flaggedCount: score.flagged_count,
+      redeemedTotal: score.redeemed_total,
+      estimatedBirr: Number(score.estimated_birr),
+      currencyCode: score.currency_code,
+      banned: score.banned,
+      banReason: score.ban_reason,
+      statusLabel: score.status,
+    }
+  } catch {
+    return null
   }
+}
+
+export async function fetchAgents(status?: AgentApplicationStatus): Promise<AgentRow[]> {
+  const rows = await listApplications(status)
+  const work = await Promise.all(rows.map((row) => loadWork(row.telegram_id)))
+  return rows.map((row, index) => ({ ...mapApplication(row), work: work[index] }))
 }
 
 export function getAgentProfile(): AgentProfile | null {
@@ -205,6 +247,55 @@ export async function completeLiveRedemption(id: string): Promise<void> {
     return
   }
   completeRedemption(id)
+}
+
+/* ── Payments (live Chapa transactions) ───────────────────── */
+
+export type PaymentRow = {
+  id: string
+  userId: string
+  email: string
+  fullName: string
+  organisation: string | null
+  amountEtb: number
+  billingPlan: 'monthly' | 'annual'
+  status: PaymentStatus
+  txRef: string
+  chapaRefId: string | null
+  failureReason: string | null
+  confirmedAt: string | null
+  createdAt: string
+}
+
+/**
+ * Payments carry only user_id, so subscriber identity comes from the
+ * subscriptions list. A payer with no matching subscription row still shows up,
+ * flagged as unknown, rather than being silently dropped.
+ */
+export async function fetchPayments(status?: PaymentStatus): Promise<PaymentRow[]> {
+  const [payments, subscribers] = await Promise.all([
+    listPayments(status),
+    listAdminSubscriptions().catch(() => [] as ApiAdminSubscription[]),
+  ])
+  const byUser = new Map(subscribers.map((row) => [row.user_id, row]))
+  return payments.map((payment) => {
+    const subscriber = byUser.get(payment.user_id)
+    return {
+      id: payment.id,
+      userId: payment.user_id,
+      email: subscriber?.email ?? '—',
+      fullName: subscriber?.full_name ?? 'Unknown subscriber',
+      organisation: subscriber?.organisation ?? null,
+      amountEtb: Number(payment.amount_etb),
+      billingPlan: payment.billing_plan,
+      status: payment.status,
+      txRef: payment.tx_ref,
+      chapaRefId: payment.chapa_ref_id,
+      failureReason: payment.failure_reason,
+      confirmedAt: payment.confirmed_at,
+      createdAt: payment.created_at,
+    }
+  })
 }
 
 /* ── Accounts ─────────────────────────────────────────────── */

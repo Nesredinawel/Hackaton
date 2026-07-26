@@ -94,8 +94,35 @@ export type ApiApplication = {
   reviewed_at: string | null
 }
 
-export async function listApplications(status = 'pending'): Promise<ApiApplication[]> {
-  return apiFetch<ApiApplication[]>(`/admin/agent-applications?status=${encodeURIComponent(status)}`)
+export type AgentApplicationStatus = 'pending' | 'approved' | 'rejected'
+
+/** An empty status returns every application; the API otherwise defaults to pending. */
+export async function listApplications(status?: AgentApplicationStatus): Promise<ApiApplication[]> {
+  return apiFetch<ApiApplication[]>(
+    `/admin/agent-applications?status=${status ? encodeURIComponent(status) : ''}`,
+  )
+}
+
+export type ApiAgentScore = {
+  telegram_id: string
+  is_agent: boolean
+  score: number
+  status: string
+  pending_count: number
+  accepted_count: number
+  flagged_count: number
+  redeemed_total: number
+  banned: boolean
+  ban_reason: string | null
+  can_redeem: boolean
+  redeem_threshold: number
+  birr_per_point: string | number
+  estimated_birr: string | number
+  currency_code: string
+}
+
+export async function fetchAgentScore(telegramId: string): Promise<ApiAgentScore> {
+  return apiFetch<ApiAgentScore>(`/agents/${encodeURIComponent(telegramId)}/score`)
 }
 
 export async function approveApplication(id: string): Promise<ApiApplication> {
@@ -139,4 +166,98 @@ export async function resolveRedeem(id: string, status: 'paid' | 'rejected'): Pr
     method: 'POST',
     body: JSON.stringify({ status }),
   })
+}
+
+export type PaymentStatus = 'pending' | 'succeeded' | 'failed'
+
+export type ApiPayment = {
+  id: string
+  user_id: string
+  amount_etb: string | number
+  billing_plan: 'monthly' | 'annual'
+  status: PaymentStatus
+  tx_ref: string
+  chapa_ref_id: string | null
+  checkout_url: string | null
+  failure_reason: string | null
+  confirmed_at: string | null
+  created_at: string
+}
+
+export async function listPayments(status?: PaymentStatus): Promise<ApiPayment[]> {
+  const query = status ? `?status=${encodeURIComponent(status)}` : ''
+  return apiFetch<ApiPayment[]>(`/admin/subscriptions/payments${query}`)
+}
+
+export type ApiAdminSubscription = {
+  user_id: string
+  email: string
+  full_name: string
+  organisation: string | null
+  tier: 'public' | 'professional' | 'enterprise'
+  effective_tier: 'public' | 'professional' | 'enterprise'
+  status: 'none' | 'trial' | 'active' | 'cancelled' | 'expired'
+  billing_plan: 'monthly' | 'annual' | null
+  trial_started_at: string | null
+  trial_ends_at: string | null
+  activated_at: string | null
+  cancelled_at: string | null
+  created_at: string
+}
+
+export async function listAdminSubscriptions(): Promise<ApiAdminSubscription[]> {
+  return apiFetch<ApiAdminSubscription[]>('/admin/subscriptions')
+}
+
+export type ApiPlan = {
+  id: string
+  code: string
+  tier: 'public' | 'professional' | 'enterprise'
+  billing_plan: 'monthly' | 'annual' | null
+  name_en: string
+  name_am: string
+  description_en: string | null
+  description_am: string | null
+  amount_etb: string | number
+  trial_days: number | null
+  exports_per_day: number | null
+  history_days: number | null
+  is_active: boolean
+  is_public: boolean
+  sort_order: number
+  created_at: string
+  updated_at: string
+}
+
+export type PlanInput = {
+  code: string
+  tier: ApiPlan['tier']
+  billing_plan: ApiPlan['billing_plan']
+  name_en: string
+  name_am: string
+  description_en?: string | null
+  description_am?: string | null
+  amount_etb: number
+  trial_days?: number | null
+  exports_per_day?: number | null
+  history_days?: number | null
+  is_active?: boolean
+  is_public?: boolean
+  sort_order?: number
+}
+
+export async function listPlans(activeOnly = false): Promise<ApiPlan[]> {
+  return apiFetch<ApiPlan[]>(`/admin/plans?active_only=${activeOnly ? 'true' : 'false'}`)
+}
+
+export async function createPlan(body: PlanInput): Promise<ApiPlan> {
+  return apiFetch<ApiPlan>('/admin/plans', { method: 'POST', body: JSON.stringify(body) })
+}
+
+export async function updatePlan(id: string, body: Partial<PlanInput>): Promise<ApiPlan> {
+  return apiFetch<ApiPlan>(`/admin/plans/${id}`, { method: 'PATCH', body: JSON.stringify(body) })
+}
+
+export async function deletePlan(id: string): Promise<void> {
+  await apiFetch<void>(`/admin/plans/${id}`, { method: 'DELETE' })
 }

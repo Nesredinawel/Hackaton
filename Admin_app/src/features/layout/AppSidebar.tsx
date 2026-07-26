@@ -3,6 +3,8 @@ import {
   Users,
   CreditCard,
   Building2,
+  Layers,
+  Receipt,
   Wallet,
   LogOut,
   Moon,
@@ -38,6 +40,8 @@ const NAV: { id: AdminScreen['id']; label: string; icon: typeof LayoutDashboard;
   { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
   { id: 'agents', label: 'Agents', icon: Users, badgeKey: 'agents' },
   { id: 'accounts', label: 'Accounts', icon: CreditCard, badgeKey: 'accounts' },
+  { id: 'payments', label: 'Payments', icon: Receipt },
+  { id: 'plans', label: 'Plans', icon: Layers },
   { id: 'enterprise', label: 'Enterprise', icon: Building2, badgeKey: 'enterprise' },
   { id: 'redemptions', label: 'Redemptions', icon: Wallet, badgeKey: 'redemptions' },
 ]
