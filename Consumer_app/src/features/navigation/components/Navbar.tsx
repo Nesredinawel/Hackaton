@@ -1,5 +1,6 @@
+import { useEffect, useState } from 'react'
 import type { Lang, NavScreen } from '@/data'
-import { getAccount } from '@/data'
+import { AUTH_CHANGED_EVENT, getAccount } from '@/data'
 import type { Theme } from '@/app/theme'
 import { Btn, ThemeToggle, LangToggle } from '@/shared/components'
 
@@ -10,6 +11,12 @@ export default function Navbar({ lang, theme, onThemeChange, onToggleLang, navig
   onToggleLang: () => void
   navigate: (s: NavScreen) => void
 }) {
+  const [, setAuthTick] = useState(0)
+  useEffect(() => {
+    const bump = () => setAuthTick((n) => n + 1)
+    window.addEventListener(AUTH_CHANGED_EVENT, bump)
+    return () => window.removeEventListener(AUTH_CHANGED_EVENT, bump)
+  }, [])
   const account = getAccount()
 
   return (

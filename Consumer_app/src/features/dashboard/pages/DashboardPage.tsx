@@ -299,26 +299,28 @@ export default function DashboardPage({ lang, navigate }: {
                     {Math.round(afford.cost_now).toLocaleString()}
                     <span className="text-base font-medium theme-text-muted ml-1.5">ETB</span>
                   </p>
-                  <ChangeBadge pct={afford.change_pct} suffix={en ? 'vs prior month' : 'MoM'} />
+                  {afford.cost_prior != null && afford.cost_prior > 0 && (
+                    <ChangeBadge pct={afford.change_pct} suffix={en ? 'vs prior month' : 'MoM'} />
+                  )}
                 </div>
-                <div className="grid grid-cols-2 gap-3 mb-5">
-                  {afford.cost_prior != null && (
+                {afford.cost_prior != null && afford.cost_prior > 0 && (
+                  <div className="grid grid-cols-2 gap-3 mb-5">
                     <div className="rounded-xl theme-surface-2 px-3 py-2.5">
                       <p className="text-[10px] uppercase tracking-wider theme-text-dim mb-0.5">Prior</p>
                       <p className="text-sm font-bold theme-text tabular-nums">
                         {Math.round(afford.cost_prior).toLocaleString()} ETB
                       </p>
                     </div>
-                  )}
-                  {afford.change_abs != null && (
-                    <div className="rounded-xl theme-surface-2 px-3 py-2.5">
-                      <p className="text-[10px] uppercase tracking-wider theme-text-dim mb-0.5">Extra cost</p>
-                      <p className={`text-sm font-bold tabular-nums ${afford.change_abs > 0 ? 'text-[var(--warning)]' : 'theme-accent'}`}>
-                        {afford.change_abs > 0 ? '+' : ''}{Math.round(afford.change_abs).toLocaleString()} ETB
-                      </p>
-                    </div>
-                  )}
-                </div>
+                    {afford.change_abs != null && (
+                      <div className="rounded-xl theme-surface-2 px-3 py-2.5">
+                        <p className="text-[10px] uppercase tracking-wider theme-text-dim mb-0.5">Extra cost</p>
+                        <p className={`text-sm font-bold tabular-nums ${afford.change_abs > 0 ? 'text-[var(--warning)]' : 'theme-accent'}`}>
+                          {afford.change_abs > 0 ? '+' : ''}{Math.round(afford.change_abs).toLocaleString()} ETB
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                )}
                 {drivers.length > 0 && (
                   <div className="border-t theme-border pt-4">
                     <p className="text-[10px] font-bold uppercase tracking-wider theme-text-dim mb-2">
@@ -432,7 +434,11 @@ export default function DashboardPage({ lang, navigate }: {
               </>
             ) : (
               <p className="text-sm theme-text-muted">
-                {en ? 'Copilot unavailable until the basket is published.' : 'Copilot unavailable.'}
+                {loading
+                  ? (en ? 'Loading Addis AI guidance…' : 'Loading…')
+                  : afford?.status === 'published'
+                    ? (en ? 'Guidance unavailable right now — try refresh.' : 'Guidance unavailable.')
+                    : (en ? 'Copilot unavailable until the basket is published.' : 'Copilot unavailable.')}
               </p>
             )}
           </section>

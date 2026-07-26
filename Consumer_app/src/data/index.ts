@@ -14,6 +14,7 @@ export { PLANS, PLAN_GUARANTEES, CONTACT_EMAIL } from './pricing'
 export type { SignUpResult, SignInResult, AccessResult } from './accounts'
 export {
   getAccount, getTier, isSignedIn, signUp, signIn, startDemoTrial, signOut,
+  AUTH_CHANGED_EVENT,
   setBillingPlan, activateSubscription, cancelSubscription, updateLanguage,
   exportsUsedToday, exportQuota, recordExport, canAccess, historyDepthDays,
   getEnquiries, submitEnterpriseEnquiry,

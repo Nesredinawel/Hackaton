@@ -18,6 +18,12 @@ const ACCOUNTS_KEY = 'waga_accounts'
 const SESSION_KEY = 'waga_session'
 const USAGE_KEY = 'waga_usage'
 const ENQUIRIES_KEY = 'waga_enterprise_enquiries'
+export const AUTH_CHANGED_EVENT = 'waga-auth-changed'
+
+function notifyAuthChanged(): void {
+  if (typeof window === 'undefined') return
+  window.dispatchEvent(new Event(AUTH_CHANGED_EVENT))
+}
 
 function today(): string {
   return new Date().toISOString().split('T')[0]
@@ -105,6 +111,7 @@ export function signUp(data: {
 
   saveAccount(account)
   localStorage.setItem(SESSION_KEY, JSON.stringify(email))
+  notifyAuthChanged()
   return { ok: true, account }
 }
 
@@ -117,6 +124,7 @@ export function signIn(email: string, password: string): SignInResult {
     return { ok: false, error: 'invalid_credentials' }
   }
   localStorage.setItem(SESSION_KEY, JSON.stringify(normalized))
+  notifyAuthChanged()
   return { ok: true, account }
 }
 
@@ -131,6 +139,7 @@ export function startDemoTrial(): SignUpResult {
     }
     saveAccount(existing)
     localStorage.setItem(SESSION_KEY, JSON.stringify(email))
+    notifyAuthChanged()
     return { ok: true, account: existing }
   }
   return signUp({
@@ -144,6 +153,7 @@ export function startDemoTrial(): SignUpResult {
 
 export function signOut(): void {
   localStorage.removeItem(SESSION_KEY)
+  notifyAuthChanged()
 }
 
 export function setBillingPlan(plan: BillingPlan): UserAccount | null {

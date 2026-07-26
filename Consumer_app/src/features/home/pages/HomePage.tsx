@@ -196,8 +196,8 @@ export default function HomePage({ lang, navigate }: { lang: Lang; navigate: (s:
 
           <p className="theme-text-muted text-base lg:text-lg leading-relaxed mb-10 max-w-md mx-auto">
             {lang === 'en'
-              ? 'Audited 72-hour index for staple foods across 30 Addis Ababa markets.'
-              : 'በ30 አዲስ አበባ ገበያዎች ተፈጻሚ የምግብ ዋጋ ኢንዴክስ።'}
+              ? 'Phase-1 Addis staples — published from real agent reports only. Gaps stay visible.'
+              : 'Phase-1 አዲስ አበባ ምግቦች — ከእውነተኛ ወኪል ሪፖርቶች ብቻ። ክፍተቶች ይታያሉ።'}
           </p>
 
           <div className="flex flex-col sm:flex-row items-center justify-center gap-3">

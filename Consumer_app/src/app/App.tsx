@@ -33,7 +33,11 @@ export default function App() {
   return (
     <div className="min-h-screen flex flex-col theme-bg" style={{ fontFamily: "'SpotifyMixUI','CircularSp','Helvetica Neue',Helvetica,Arial,sans-serif" }}>
       <Navbar lang={lang} theme={theme} onThemeChange={setTheme} onToggleLang={toggleLang} navigate={navigate} />
-      <main className="flex-1" key={liveReady ? 'live' : 'boot'}>
+      <main className="flex-1">
+        {/* Keep routes mounted — remounting on live hydrate was wiping dashboard state mid-demo. */}
+        {!liveReady && (
+          <p className="sr-only">Loading live prices…</p>
+        )}
         <AppRoutes lang={lang} screen={screen} navigate={navigate} />
       </main>
       <Footer lang={lang} navigate={navigate} />
