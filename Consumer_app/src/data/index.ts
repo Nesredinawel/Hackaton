@@ -7,13 +7,13 @@ export { getPriceHistory } from './prices'
 export { IMG, getMarketImage } from './images'
 export { COMMODITIES, BASKET_IDS } from './commodities'
 export { MARKETS, getMarketById, DEFAULT_MARKET } from './markets'
-export { PRICES, getC, getMkt, getP, TG_BOT, tgBotLink, tgLink, tgAgentLink, ALL_LIVE_PAIRS, avgBasket, liveCount, getMarketLeaderboard, getItemLeaderboard, getMarketHeatPoints, marketHeatIntensity, heatIntensityColor, HEATMAP_GRADIENT } from './prices'
+export { PRICES, getC, getMkt, getP, TG_BOT, tgBotLink, tgLink, tgAgentLink, ALL_LIVE_PAIRS, avgBasket, liveCount, getMarketLeaderboard, getItemLeaderboard, getMarketHeatPoints, getCommodityHeatPoints, marketHeatIntensity, heatIntensityColor, HEATMAP_GRADIENT } from './prices'
 export type { MarketHeatPoint } from './prices'
 export type { Plan, PlanFeature, FeatureState } from './pricing'
 export { PLANS, PLAN_GUARANTEES, CONTACT_EMAIL } from './pricing'
 export type { SignUpResult, SignInResult, AccessResult } from './accounts'
 export {
-  getAccount, getTier, isSignedIn, signUp, signIn, signOut,
+  getAccount, getTier, isSignedIn, signUp, signIn, startDemoTrial, signOut,
   setBillingPlan, activateSubscription, cancelSubscription, updateLanguage,
   exportsUsedToday, exportQuota, recordExport, canAccess, historyDepthDays,
   getEnquiries, submitEnterpriseEnquiry,

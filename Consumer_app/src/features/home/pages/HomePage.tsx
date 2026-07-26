@@ -1,8 +1,9 @@
 import { useEffect, useState, type ReactNode } from 'react'
 import type { Lang, NavScreen, Published } from '@/data'
 import { COMMODITIES, MARKETS, getP, getMarketLeaderboard, getItemLeaderboard, IMG, PLANS, PRO_MONTHLY_PRICE, canAccess } from '@/data'
-import { askCopilot, fetchAffordability, type AffordabilitySnapshot, type CopilotResult } from '@/data/live'
-import { LiveDot, Btn, ItemCard, ReportPriceCta, AgentBotCta, reportPriceCopy, agentBotCopy } from '@/shared/components'
+import { fetchAffordability, type AffordabilitySnapshot } from '@/data/live'
+import { fromApiCommodity } from '@/lib/api'
+import { LiveDot, Btn, ItemCard, ChangeBadge, ReportPriceCta, AgentBotCta, reportPriceCopy, agentBotCopy } from '@/shared/components'
 
 function heatColor(avg: number): string {
   if (avg >= 100) return '#FFA42B'
@@ -142,11 +143,9 @@ function PricingTeaserCard({ lang, navigate, plan }: {
 
 export default function HomePage({ lang, navigate }: { lang: Lang; navigate: (s: NavScreen) => void }) {
   const [afford, setAfford] = useState<AffordabilitySnapshot | null>(null)
-  const [copilot, setCopilot] = useState<CopilotResult | null>(null)
 
   useEffect(() => {
     void fetchAffordability().then(setAfford)
-    void askCopilot(50000).then(setCopilot)
   }, [])
 
   const totalLive = COMMODITIES.flatMap(c => MARKETS.map(m => getP(c.id, m.id)))
@@ -228,45 +227,61 @@ export default function HomePage({ lang, navigate }: { lang: Lang; navigate: (s:
             <span className="hidden sm:inline w-1 h-1 rounded-full bg-[var(--text-dim)] opacity-60" aria-hidden />
             <span>{lang === 'en' ? 'Addis Ababa' : 'አዲስ አበባ'}</span>
             <span className="hidden sm:inline w-1 h-1 rounded-full bg-[var(--text-dim)] opacity-60" aria-hidden />
-            <span className="theme-text-dim">{lang === 'en' ? 'Gaps shown honestly' : 'ክፍተቶች በግልጽ'}</span>
+            <span className="theme-text-dim">{lang === 'en' ? 'Inflation from real reports' : 'የዋጋ ግሽበት ከእውነተኛ ሪፖርቶች'}</span>
           </div>
         </div>
       </section>
 
-      {(afford?.status === 'published' || copilot?.answer) && (
-        <section className="border-t theme-border">
-          <div className="max-w-6xl mx-auto px-6 lg:px-10 py-12 lg:py-16 grid gap-4 lg:grid-cols-2">
-            {afford?.status === 'published' && afford.cost_now != null && (
-              <div className="rounded-2xl theme-card p-6">
-                <p className="text-[11px] font-bold uppercase tracking-[0.14em] theme-accent mb-2">
-                  Affordability · live API
-                </p>
-                <p className="theme-text text-2xl font-bold tabular-nums" style={display}>
-                  {Math.round(afford.cost_now).toLocaleString()} ETB
-                </p>
-                <p className="mt-2 text-sm theme-text-muted">
-                  Staple basket now
-                  {afford.change_pct != null ? ` · ${afford.change_pct > 0 ? '+' : ''}${afford.change_pct}%` : ''}
-                  {afford.band ? ` · ${afford.band}` : ''}
-                </p>
-              </div>
-            )}
-            {copilot?.answer && (
-              <div className="rounded-2xl theme-card p-6">
-                <p className="text-[11px] font-bold uppercase tracking-[0.14em] theme-accent mb-2">
-                  Cash assistance copilot
-                </p>
-                <p className="text-sm theme-text-muted leading-relaxed line-clamp-5">{copilot.answer}</p>
-                {copilot.recommendation && (
-                  <p className="mt-3 text-sm font-semibold theme-text">
-                    Suggested adjustment: +{copilot.recommendation.band_low_pct}–{copilot.recommendation.band_high_pct}%
-                  </p>
-                )}
-              </div>
-            )}
+      {/* Paid value teaser — full decision layer lives on Pro dashboard */}
+      <section className="border-t theme-border">
+        <div className="max-w-6xl mx-auto px-6 lg:px-10 py-12 lg:py-16">
+          <div className="rounded-2xl theme-card p-6 lg:p-8 flex flex-col lg:flex-row lg:items-center gap-6 lg:gap-10">
+            <div className="flex-1 min-w-0">
+              <p className="text-[11px] font-bold uppercase tracking-[0.14em] theme-accent mb-2">
+                For programmes
+              </p>
+              <h2 className="theme-text text-xl lg:text-2xl font-bold mb-2" style={display}>
+                Programme dashboard
+              </h2>
+              <p className="text-sm theme-text-muted leading-relaxed mb-4 max-w-xl">
+                Basket inflation, coverage honesty, cited cash-assistance guidance, and market pressure — what paying teams use to set transfers.
+              </p>
+              {afford?.status === 'published' && afford.change_pct != null && (
+                <div className="flex flex-wrap items-center gap-2 mb-4">
+                  <span className="text-sm theme-text-muted">
+                    Basket now {afford.cost_now != null ? `${Math.round(afford.cost_now).toLocaleString()} ETB` : '—'}
+                  </span>
+                  <ChangeBadge pct={afford.change_pct} size="sm" suffix="MoM" />
+                  {afford.band && (
+                    <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full theme-badge-warning">
+                      {afford.band}
+                    </span>
+                  )}
+                </div>
+              )}
+              <Btn
+                variant="primary"
+                size="md"
+                onClick={() => navigate(canAccess('dashboard').allowed ? { id: 'dashboard' } : { id: 'sign-up' })}
+              >
+                {canAccess('dashboard').allowed ? 'Open dashboard →' : 'Unlock with Professional →'}
+              </Btn>
+            </div>
+            <ul className="shrink-0 space-y-2 text-sm theme-text-muted lg:w-64">
+              {[
+                'Coverage: published vs insufficient',
+                'Cited transfer uplift + impact',
+                'Map & heatmap for area pressure',
+              ].map(item => (
+                <li key={item} className="flex items-start gap-2">
+                  <span className="theme-accent mt-0.5">✓</span>
+                  <span>{item}</span>
+                </li>
+              ))}
+            </ul>
           </div>
-        </section>
-      )}
+        </div>
+      </section>
 
       {/* ── Browse staples ── */}
       <section className="border-t theme-border">
@@ -290,9 +305,13 @@ export default function HomePage({ lang, navigate }: { lang: Lang; navigate: (s:
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 sm:gap-4 items-stretch">
             {COMMODITIES.map(c => {
               const prices = MARKETS.map(m => getP(c.id, m.id)).filter((p): p is Published => p.status === 'published')
-              const avg = prices.length > 0 ? Math.round(prices.reduce((s, p) => s + p.price, 0) / prices.length) : 0
-              const min = prices.length > 0 ? Math.min(...prices.map(p => p.price)) : 0
-              const max = prices.length > 0 ? Math.max(...prices.map(p => p.price)) : 0
+              if (prices.length === 0) return null
+              const avg = Math.round(prices.reduce((s, p) => s + p.price, 0) / prices.length)
+              const min = Math.min(...prices.map(p => p.price))
+              const max = Math.max(...prices.map(p => p.price))
+              const inflation = afford?.items?.find(
+                i => fromApiCommodity(i.commodity_code) === c.id && i.status === 'published',
+              )?.change_pct ?? null
 
               return (
                 <ItemCard
@@ -306,7 +325,7 @@ export default function HomePage({ lang, navigate }: { lang: Lang; navigate: (s:
                   max={max}
                   liveCount={prices.length}
                   totalMarkets={MARKETS.length}
-                  noDataLabel={lang === 'en' ? 'No data yet' : 'ገና ዳታ የለም'}
+                  changePct={inflation}
                   onClick={() => navigate({ id: 'commodity-overview', commodityId: c.id })}
                 />
               )

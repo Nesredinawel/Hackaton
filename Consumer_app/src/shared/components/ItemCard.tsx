@@ -1,4 +1,5 @@
 import LiveDot from './LiveDot'
+import ChangeBadge from './ChangeBadge'
 
 const display = { fontFamily: "'SpotifyMixUITitle','CircularSp','Helvetica Neue',Helvetica,Arial,sans-serif" } as const
 
@@ -12,7 +13,7 @@ export default function ItemCard({
   max,
   liveCount,
   totalMarkets,
-  noDataLabel,
+  changePct,
   onClick,
 }: {
   image: string
@@ -24,12 +25,12 @@ export default function ItemCard({
   max: number
   liveCount?: number
   totalMarkets?: number
-  noDataLabel: string
+  /** Month-over-month inflation for this staple, when known */
+  changePct?: number | null
   onClick: () => void
 }) {
-  const hasData = avg > 0
   const span = max - min || 1
-  const avgPct = hasData ? Math.min(100, Math.max(0, ((avg - min) / span) * 100)) : 0
+  const avgPct = Math.min(100, Math.max(0, ((avg - min) / span) * 100))
 
   return (
     <button
@@ -45,7 +46,7 @@ export default function ItemCard({
         />
         <div className="item-card-scrim" aria-hidden />
         <span className="item-card-emoji" aria-hidden>{emoji}</span>
-        {hasData && liveCount !== undefined && totalMarkets !== undefined && (
+        {liveCount !== undefined && totalMarkets !== undefined && (
           <span className="item-card-live">
             <LiveDot size="sm" />
             <span className="tabular-nums">{liveCount}/{totalMarkets}</span>
@@ -62,26 +63,23 @@ export default function ItemCard({
           <span className="item-card-arrow" aria-hidden>→</span>
         </div>
 
-        {hasData ? (
-          <>
-            <p className="item-card-price" style={display}>
-              {avg}
-              <span className="item-card-price-unit">birr</span>
-            </p>
-            <div className="item-card-range mt-2.5">
-              <div className="item-card-range-track">
-                <div className="item-card-range-gradient" />
-                <span className="item-card-range-marker" style={{ left: `${avgPct}%` }} />
-              </div>
-              <div className="item-card-range-labels">
-                <span className="tabular-nums">{min}</span>
-                <span className="tabular-nums">{max}</span>
-              </div>
-            </div>
-          </>
-        ) : (
-          <p className="item-card-nodata">{noDataLabel}</p>
-        )}
+        <div className="flex items-end justify-between gap-2">
+          <p className="item-card-price" style={display}>
+            {avg}
+            <span className="item-card-price-unit">birr</span>
+          </p>
+          <ChangeBadge pct={changePct} size="sm" />
+        </div>
+        <div className="item-card-range mt-2.5">
+          <div className="item-card-range-track">
+            <div className="item-card-range-gradient" />
+            <span className="item-card-range-marker" style={{ left: `${avgPct}%` }} />
+          </div>
+          <div className="item-card-range-labels">
+            <span className="tabular-nums">{min}</span>
+            <span className="tabular-nums">{max}</span>
+          </div>
+        </div>
       </div>
     </button>
   )

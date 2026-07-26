@@ -1,7 +1,7 @@
 import { useState } from 'react'
-import type { Lang, NavScreen, Published, Insufficient } from '@/data'
+import type { Lang, NavScreen, Published } from '@/data'
 import { MARKETS, getC, getP } from '@/data'
-import { ReportPriceBand, LiveDot } from '@/shared/components'
+import { ReportPriceBand, LiveDot, ChangeBadge, vsAvgPct } from '@/shared/components'
 
 const display = { fontFamily: "'SpotifyMixUITitle','CircularSp','Helvetica Neue',Helvetica,Arial,sans-serif" } as const
 
@@ -15,22 +15,22 @@ export default function CommodityOverviewPage({ lang, commodityId, navigate }: {
   const c = getC(commodityId)
   const [sort, setSort] = useState<Sort>('price-asc')
 
+  // Only show markets with a published price — hide insufficient / empty cells.
   const rows = MARKETS.map(m => {
     const p = getP(c.id, m.id)
     return { market: m, price: p }
-  })
+  }).filter((r): r is { market: typeof MARKETS[number]; price: Published } => r.price.status === 'published')
 
   const sorted = [...rows].sort((a, b) => {
     if (sort === 'name') return a.market.en.localeCompare(b.market.en)
-    const pa = a.price.status === 'published' ? (a.price as Published).price : -1
-    const pb = b.price.status === 'published' ? (b.price as Published).price : -1
-    return sort === 'price-asc' ? pa - pb : pb - pa
+    return sort === 'price-asc' ? a.price.price - b.price.price : b.price.price - a.price.price
   })
 
-  const published = rows.filter(r => r.price.status === 'published').map(r => (r.price as Published).price)
+  const published = rows.map(r => r.price.price)
   const avg = published.length > 0 ? Math.round(published.reduce((a, b) => a + b, 0) / published.length) : 0
   const min = published.length > 0 ? Math.min(...published) : 0
   const max = published.length > 0 ? Math.max(...published) : 0
+  const spreadPct = min > 0 ? Math.round(((max - min) / min) * 100) : null
 
   return (
     <div className="theme-bg min-h-full">
@@ -52,7 +52,7 @@ export default function CommodityOverviewPage({ lang, commodityId, navigate }: {
               <h1 className="text-3xl font-bold theme-text" style={{ ...display, letterSpacing: '-0.03em' }}>
                 {c.emoji} {lang === 'am' ? c.am : c.en}
               </h1>
-              <p className="theme-text-muted text-sm mt-1">{lang === 'am' ? c.unitAm : c.unit} · {MARKETS.length} {lang === 'en' ? 'markets in Addis Ababa' : 'ገበያዎች'}</p>
+              <p className="theme-text-muted text-sm mt-1">{lang === 'am' ? c.unitAm : c.unit} · {published.length} {lang === 'en' ? 'markets with prices' : 'ዋጋ ያላቸው ገበያዎች'}</p>
             </div>
           </div>
         </div>
@@ -63,10 +63,14 @@ export default function CommodityOverviewPage({ lang, commodityId, navigate }: {
         <div className="max-w-6xl mx-auto px-6 lg:px-10 py-4">
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
             {[
-              { value: avg > 0 ? `~${avg}` : '—', label: lang === 'en' ? 'Avg price' : 'አverage ዋጋ', cls: 'theme-stat-value' },
-              { value: min > 0 ? String(min) : '—', label: lang === 'en' ? 'Lowest' : 'ቅነስ', cls: 'theme-stat-value-accent' },
-              { value: max > 0 ? String(max) : '—', label: lang === 'en' ? 'Highest' : 'ከፍተኛ', cls: 'theme-stat-value-warning' },
-              { value: `${published.length}/${MARKETS.length}`, label: lang === 'en' ? 'Live' : 'ቀጥታ', cls: 'theme-stat-value-accent' },
+              { value: avg > 0 ? `~${avg}` : '—', label: lang === 'en' ? 'City avg' : 'ከተማ አማካይ', cls: 'theme-stat-value' },
+              { value: min > 0 ? String(min) : '—', label: lang === 'en' ? 'Cheapest' : 'ርካሽ', cls: 'theme-stat-value-accent' },
+              { value: max > 0 ? String(max) : '—', label: lang === 'en' ? 'Most expensive' : 'ውድ', cls: 'theme-stat-value-warning' },
+              {
+                value: spreadPct != null ? `${spreadPct}%` : '—',
+                label: lang === 'en' ? 'Market spread' : 'የገበያ ልዩነት',
+                cls: 'theme-stat-value',
+              },
             ].map(s => (
               <div key={s.label} className="text-center">
                 <p className={`text-xl font-bold ${s.cls}`}>{s.value}</p>
@@ -77,7 +81,7 @@ export default function CommodityOverviewPage({ lang, commodityId, navigate }: {
         </div>
       </div>
 
-      {/* Market cards */}
+      {/* Market cards — published only */}
       <div className="max-w-6xl mx-auto px-6 lg:px-10 py-8">
         <div className="flex flex-wrap items-center gap-2 mb-5">
           <span className="theme-eyebrow">{lang === 'en' ? 'Sort by' : 'ደርድር'}:</span>
@@ -92,17 +96,21 @@ export default function CommodityOverviewPage({ lang, commodityId, navigate }: {
           ))}
         </div>
 
+        {sorted.length === 0 ? (
+          <p className="text-sm theme-text-muted py-8 text-center">
+            {lang === 'en' ? 'No live prices for this staple yet.' : 'ለዚህ ምግብ ቀጥታ ዋጋ የለም።'}
+          </p>
+        ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
           {sorted.map((row, i) => {
-            const pub = row.price.status === 'published' ? row.price as Published : null
-            const insuff = row.price.status === 'insufficient' ? row.price as Insufficient : null
+            const pub = row.price
+            const delta = vsAvgPct(pub.price, avg)
+            const cheapest = pub.price === min
 
             return (
               <button
                 key={row.market.id}
-                onClick={() => pub
-                  ? navigate({ id: 'price-detail', commodityId: c.id, marketId: row.market.id })
-                  : navigate({ id: 'price-no-data', commodityId: c.id, marketId: row.market.id })}
+                onClick={() => navigate({ id: 'price-detail', commodityId: c.id, marketId: row.market.id })}
                 className="text-left rounded-2xl theme-card theme-card-interactive overflow-hidden group"
               >
                 <div className="relative h-24 overflow-hidden">
@@ -113,17 +121,16 @@ export default function CommodityOverviewPage({ lang, commodityId, navigate }: {
                       {i + 1}
                     </span>
                   </div>
-                  <div className="absolute top-2.5 right-2.5">
-                    {pub ? (
-                      <div className="flex items-center gap-1 theme-image-badge rounded-full px-2 py-0.5">
-                        <LiveDot />
-                        <span className="text-[9px] theme-text-muted font-medium">{pub.freshness}</span>
-                      </div>
-                    ) : (
-                      <span className="theme-badge-warning text-[9px] font-bold px-2 py-0.5 rounded-full">
-                        {insuff!.current}/3
+                  <div className="absolute top-2.5 right-2.5 flex items-center gap-1">
+                    {cheapest && (
+                      <span className="theme-image-badge rounded-full px-2 py-0.5 text-[9px] font-bold theme-accent">
+                        {lang === 'en' ? 'Best' : 'ጥሩ'}
                       </span>
                     )}
+                    <div className="flex items-center gap-1 theme-image-badge rounded-full px-2 py-0.5">
+                      <LiveDot />
+                      <span className="text-[9px] theme-text-muted font-medium">{pub.freshness}</span>
+                    </div>
                   </div>
                 </div>
 
@@ -132,27 +139,30 @@ export default function CommodityOverviewPage({ lang, commodityId, navigate }: {
                     {lang === 'am' ? row.market.am : row.market.en}
                   </p>
 
-                  {pub ? (
-                    <div className="flex items-end justify-between gap-2">
-                      <div>
-                        <p className="text-2xl font-bold theme-text leading-none" style={{ ...display, letterSpacing: '-0.03em' }}>
-                          {pub.price} <span className="text-xs font-medium theme-text-muted">birr</span>
-                        </p>
-                        <p className="text-[10px] theme-text-dim mt-1">{pub.low}–{pub.high} range</p>
-                      </div>
-                      <div className="text-right shrink-0">
-                        <p className="text-[10px] theme-text-dim">{pub.reports} {lang === 'en' ? 'reports' : 'ሪፖርቶች'}</p>
-                        <p className="text-[10px] theme-text-dim">{pub.contributors} {lang === 'en' ? 'people' : 'ሰዎች'}</p>
-                      </div>
+                  <div className="flex items-end justify-between gap-2">
+                    <div>
+                      <p className="text-2xl font-bold theme-text leading-none" style={{ ...display, letterSpacing: '-0.03em' }}>
+                        {pub.price} <span className="text-xs font-medium theme-text-muted">birr</span>
+                      </p>
+                      <p className="text-[10px] theme-text-dim mt-1">
+                        {lang === 'en' ? 'vs city avg' : 'ከከተማ አማካይ'}
+                      </p>
                     </div>
-                  ) : (
-                    <span className="text-sm font-semibold text-[var(--warning)]">⚠ {lang === 'en' ? 'Not enough data' : 'በቂ ዳታ የለም'}</span>
-                  )}
+                    <div className="text-right shrink-0 space-y-1">
+                      <ChangeBadge
+                        pct={delta}
+                        size="sm"
+                        suffix={lang === 'en' ? 'avg' : 'አማካይ'}
+                      />
+                      <p className="text-[10px] theme-text-dim">{pub.reports} {lang === 'en' ? 'reports' : 'ሪፖርቶች'}</p>
+                    </div>
+                  </div>
                 </div>
               </button>
             )
           })}
         </div>
+        )}
 
         <div className="mt-8">
           <ReportPriceBand lang={lang} commodityId={c.id} marketId={MARKETS[0].id} />

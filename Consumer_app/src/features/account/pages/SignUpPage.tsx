@@ -26,7 +26,7 @@ export default function SignUpPage({ lang, navigate }: { lang: Lang; navigate: (
       )
       return
     }
-    navigate({ id: 'upgrade-success' })
+    navigate({ id: 'dashboard' })
   }
 
   return (

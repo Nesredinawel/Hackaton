@@ -78,14 +78,19 @@ export default function AccountPage({ lang, navigate }: { lang: Lang; navigate: 
         </div>
         <p className="text-sm text-[#B3B3B3] mb-3">{statusLabel(account, lang)}</p>
         <p className="text-sm text-white mb-4">{account.email}</p>
-        {!isEnterprise && (
-          <div className="flex gap-4 text-sm">
-            <button className="font-semibold text-[#1ED760] hover:underline">{lang === 'en' ? 'Manage billing' : 'ክፍያ አስተዳድር'}</button>
-            {account.subscriptionStatus !== 'cancelled' && (
-              <button onClick={doCancel} className="text-[#B3B3B3] hover:text-[#F3727F] transition-colors">{lang === 'en' ? 'Cancel plan' : 'ዕቅድ ሰርዝ'}</button>
-            )}
-          </div>
-        )}
+        <div className="flex flex-wrap gap-4 text-sm mb-2">
+          <button onClick={() => navigate({ id: 'dashboard' })} className="font-semibold text-[#1ED760] hover:underline">
+            {lang === 'en' ? 'Open programme dashboard →' : 'Open programme dashboard →'}
+          </button>
+          {!isEnterprise && (
+            <>
+              <button className="font-semibold text-[#1ED760] hover:underline">{lang === 'en' ? 'Manage billing' : 'Manage billing'}</button>
+              {account.subscriptionStatus !== 'cancelled' && (
+                <button onClick={doCancel} className="text-[#B3B3B3] hover:text-[#F3727F] transition-colors">{lang === 'en' ? 'Cancel plan' : 'Cancel plan'}</button>
+              )}
+            </>
+          )}
+        </div>
       </div>
 
       {/* Usage */}

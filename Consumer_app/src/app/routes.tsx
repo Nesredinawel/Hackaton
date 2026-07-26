@@ -4,7 +4,6 @@ import MapBrowserPage from '@/features/map/pages/MapBrowserPage'
 import StaplesPage from '@/features/commodity/pages/StaplesPage'
 import CommodityOverviewPage from '@/features/commodity/pages/CommodityOverviewPage'
 import PriceDetailPage from '@/features/price/pages/PriceDetailPage'
-import PriceNoDataPage from '@/features/price/pages/PriceNoDataPage'
 import PriceConfirmedPage from '@/features/price/pages/PriceConfirmedPage'
 import AgentRegisterPage from '@/features/agent/pages/AgentRegisterPage'
 import AgentDashboardPage from '@/features/agent/pages/AgentDashboardPage'
@@ -14,6 +13,7 @@ import SignUpPage from '@/features/account/pages/SignUpPage'
 import SignInPage from '@/features/account/pages/SignInPage'
 import AccountPage from '@/features/account/pages/AccountPage'
 import UpgradeSuccessPage from '@/features/account/pages/UpgradeSuccessPage'
+import DashboardPage from '@/features/dashboard/pages/DashboardPage'
 
 export default function AppRoutes({ lang, screen, navigate }: {
   lang: Lang
@@ -32,7 +32,8 @@ export default function AppRoutes({ lang, screen, navigate }: {
     case 'price-detail':
       return <PriceDetailPage lang={lang} commodityId={screen.commodityId} marketId={screen.marketId} navigate={navigate} />
     case 'price-no-data':
-      return <PriceNoDataPage lang={lang} commodityId={screen.commodityId} marketId={screen.marketId} navigate={navigate} />
+      // Hide "not enough reports" — send users back to the commodity list instead.
+      return <CommodityOverviewPage lang={lang} commodityId={screen.commodityId} navigate={navigate} />
     case 'price-confirmed':
       return <PriceConfirmedPage lang={lang} commodityId={screen.commodityId} marketId={screen.marketId} navigate={navigate} />
     case 'agent-register':
@@ -47,6 +48,8 @@ export default function AppRoutes({ lang, screen, navigate }: {
       return <SignInPage lang={lang} navigate={navigate} />
     case 'account':
       return <AccountPage lang={lang} navigate={navigate} />
+    case 'dashboard':
+      return <DashboardPage lang={lang} navigate={navigate} />
     case 'enterprise-enquiry':
       return <EnterpriseEnquiryPage lang={lang} navigate={navigate} />
     case 'upgrade-success':

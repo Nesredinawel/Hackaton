@@ -34,8 +34,8 @@ export default function PriceHistoryChart({ points, unit }: { points: HistoryPoi
           </span>
           <span className="text-sm theme-text-muted ml-1.5">birr / {unit}</span>
         </div>
-        <span className={`text-sm font-semibold ${change >= 0 ? 'text-[var(--warning)]' : 'theme-accent'}`}>
-          {change >= 0 ? '▲' : '▼'} {Math.abs(pct)}% · {points.length}d
+        <span className={`text-sm font-semibold tabular-nums ${change >= 0 ? 'text-[var(--warning)]' : 'theme-accent'}`}>
+          {change >= 0 ? '▲' : '▼'} {change >= 0 ? '+' : '−'}{Math.abs(pct)}% · {points.length}d
         </span>
       </div>
       <svg viewBox={`0 0 ${W} ${H}`} className="w-full" style={{ height: 'auto' }} preserveAspectRatio="none">

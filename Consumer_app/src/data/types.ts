@@ -14,6 +14,7 @@ export type NavScreen =
   | { id: 'sign-up' }
   | { id: 'sign-in' }
   | { id: 'account' }
+  | { id: 'dashboard' }
   | { id: 'enterprise-enquiry' }
   | { id: 'upgrade-success' }
 
@@ -165,6 +166,8 @@ export type GateFeature =
   | 'confidence'
   | 'comparison'
   | 'map'
+  | 'dashboard'
+  | 'copilot'
   | 'export'
   | 'api'
   | 'basket'

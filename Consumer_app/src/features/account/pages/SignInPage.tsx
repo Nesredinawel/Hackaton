@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import type { Lang, NavScreen } from '@/data'
-import { signIn } from '@/data'
+import { signIn, startDemoTrial } from '@/data'
 import { Field, TextInput } from '@/shared/components'
 
 export default function SignInPage({ lang, navigate }: { lang: Lang; navigate: (s: NavScreen) => void }) {
@@ -16,7 +16,7 @@ export default function SignInPage({ lang, navigate }: { lang: Lang; navigate: (
       setError(lang === 'en' ? 'Email or password is incorrect.' : 'ኢሜይል ወይም የይለፍ ቃል የተሳሳተ ነው።')
       return
     }
-    navigate({ id: 'account' })
+    navigate({ id: 'dashboard' })
   }
 
   return (
@@ -51,6 +51,17 @@ export default function SignInPage({ lang, navigate }: { lang: Lang; navigate: (
         <button onClick={submit}
           className="w-full py-3 rounded-full text-sm font-semibold text-[#121212] bg-[#1ED760] hover:bg-[#1DB954] transition-colors">
           {lang === 'en' ? 'Sign in  →' : 'ግባ  →'}
+        </button>
+
+        <button
+          type="button"
+          onClick={() => {
+            startDemoTrial()
+            navigate({ id: 'dashboard' })
+          }}
+          className="w-full py-3 rounded-full text-sm font-semibold text-white border border-[#282828] bg-[#181818] hover:border-[#1ED760] transition-colors"
+        >
+          {lang === 'en' ? 'Continue as demo Pro →' : 'Continue as demo Pro →'}
         </button>
       </div>
 

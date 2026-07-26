@@ -7,24 +7,33 @@ export default function UpgradeSuccessPage({ lang, navigate }: { lang: Lang; nav
 
   const actions = [
     {
+      icon: '◎',
+      titleEn: 'Open programme dashboard',
+      titleAm: 'Open programme dashboard',
+      bodyEn: 'Basket inflation, Addis AI guidance, monthly brief, and coverage honesty.',
+      bodyAm: 'Basket inflation, Addis AI guidance, monthly brief, and coverage honesty.',
+      ctaEn: 'Open dashboard →',
+      ctaAm: 'Open dashboard →',
+      go: () => navigate({ id: 'dashboard' }),
+    },
+    {
       icon: '📈',
-      titleEn: 'View 30-day history', titleAm: 'የ30 ቀን ታሪክ እይ',
-      bodyEn: 'See how prices have moved.', bodyAm: 'ዋጋዎች እንዴት እንደተንቀሳቀሱ እይ።',
-      ctaEn: 'Browse prices →', ctaAm: 'ዋጋዎችን አስስ →',
+      titleEn: 'View 30-day history',
+      titleAm: 'View 30-day history',
+      bodyEn: 'See how prices have moved.',
+      bodyAm: 'See how prices have moved.',
+      ctaEn: 'Browse prices →',
+      ctaAm: 'Browse prices →',
       go: () => navigate({ id: 'commodity-overview', commodityId: firstCommodity }),
     },
     {
       icon: '↓',
-      titleEn: 'Export price data', titleAm: 'የዋጋ ዳታ አውጣ',
-      bodyEn: 'Download a CSV with full provenance attached.', bodyAm: 'ሙሉ ምንጭ ያለበት CSV አውርድ።',
-      ctaEn: 'Go to export →', ctaAm: 'ወደ ማውጣት →',
-      go: () => navigate({ id: 'commodity-overview', commodityId: firstCommodity }),
-    },
-    {
-      icon: '⚖',
-      titleEn: 'Compare markets', titleAm: 'ገበያዎችን አነጻጽር',
-      bodyEn: 'See one commodity across all markets on one screen.', bodyAm: 'አንድ ሸቀጥ በሁሉም ገበያዎች በአንድ ማያ ገጽ እይ።',
-      ctaEn: 'Compare now →', ctaAm: 'አሁን አነጻጽር →',
+      titleEn: 'Export price data',
+      titleAm: 'Export price data',
+      bodyEn: 'Download a CSV with full provenance attached.',
+      bodyAm: 'Download a CSV with full provenance attached.',
+      ctaEn: 'Go to export →',
+      ctaAm: 'Go to export →',
       go: () => navigate({ id: 'commodity-overview', commodityId: firstCommodity }),
     },
   ]
@@ -34,16 +43,25 @@ export default function UpgradeSuccessPage({ lang, navigate }: { lang: Lang; nav
       <div className="rounded-2xl p-6 mb-8 text-center" style={{ backgroundColor: '#1F1F1F', border: '1px solid #1DB954' }}>
         <span className="text-3xl block mb-2">✅</span>
         <h1 className="font-bold text-white mb-1" style={{ fontFamily: "'SpotifyMixUITitle','CircularSp','Helvetica Neue',Helvetica,Arial,sans-serif", fontSize: 24, letterSpacing: '-0.03em' }}>
-          {lang === 'en' ? 'Welcome to Professional' : 'ወደ ፕሮፌሽናል እንኳን በደህና መጡ'}
+          {lang === 'en' ? 'Welcome to Professional' : 'Welcome to Professional'}
         </h1>
         <p className="text-sm text-[#B3B3B3]">
           {lang === 'en'
             ? `Your account is active${account ? `, ${account.fullName.split(' ')[0]}` : ''}. 14-day trial started.`
-            : 'መለያዎ ንቁ ነው። የ14 ቀን ሙከራ ተጀምሯል።'}
+            : `Your account is active${account ? `, ${account.fullName.split(' ')[0]}` : ''}. 14-day trial started.`}
         </p>
+        <button
+          type="button"
+          onClick={() => navigate({ id: 'dashboard' })}
+          className="mt-4 inline-flex items-center justify-center rounded-full bg-[#1ED760] px-5 py-2.5 text-sm font-bold text-[#121212] hover:brightness-110"
+        >
+          Open programme dashboard →
+        </button>
       </div>
 
-      <h2 className="text-sm font-bold text-[#B3B3B3] uppercase tracking-widest mb-4">{lang === 'en' ? 'What you can do now' : 'አሁን ምን ማድረግ ይችላሉ'}</h2>
+      <h2 className="text-sm font-bold text-[#B3B3B3] uppercase tracking-widest mb-4">
+        What you can do now
+      </h2>
       <div className="space-y-3">
         {actions.map((a) => (
           <div key={a.titleEn} className="bg-[#181818] rounded-2xl border border-[#282828] p-5" style={{ boxShadow: '0 8px 8px rgba(0,0,0,0.3)' }}>
@@ -60,9 +78,9 @@ export default function UpgradeSuccessPage({ lang, navigate }: { lang: Lang; nav
       </div>
 
       <div className="mt-8 text-sm text-[#B3B3B3]">
-        {lang === 'en' ? 'Need Enterprise?' : 'ኢንተርፕራይዝ ይፈልጋሉ?'}{' '}
+        Need Enterprise?{' '}
         <button onClick={() => navigate({ id: 'enterprise-enquiry' })} className="font-semibold text-[#1ED760] hover:underline">
-          {lang === 'en' ? 'Talk to us →' : 'አነጋግረን →'}
+          Talk to us →
         </button>
       </div>
     </div>

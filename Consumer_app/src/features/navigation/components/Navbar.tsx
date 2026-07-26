@@ -23,6 +23,18 @@ export default function Navbar({ lang, theme, onThemeChange, onToggleLang, navig
             </span>
           </button>
 
+          <div className="hidden md:flex items-center gap-1 ml-4">
+            <Btn variant="text" size="sm" onClick={() => navigate({ id: 'staples' })}>
+              {lang === 'en' ? 'Prices' : 'Prices'}
+            </Btn>
+            <Btn variant="text" size="sm" onClick={() => navigate({ id: 'dashboard' })}>
+              {lang === 'en' ? 'Dashboard' : 'Dashboard'}
+            </Btn>
+            <Btn variant="text" size="sm" onClick={() => navigate({ id: 'map' })}>
+              {lang === 'en' ? 'Map' : 'Map'}
+            </Btn>
+          </div>
+
           <div className="flex-1" />
 
           <div className="flex items-center gap-2 sm:gap-3">

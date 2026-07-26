@@ -1,7 +1,10 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import type { Lang, NavScreen, Published } from '@/data'
 import { MARKETS, getC, getP, getPriceHistory, canAccess, historyDepthDays, getTier, recordExport, exportsUsedToday, PRO_EXPORTS_PER_DAY } from '@/data'
-import { LiveDot, Btn, RangeBar, StatRow, PriceHistoryChart, PaywallOverlay, PaywallPanel, ReportPriceCta, reportPriceCopy } from '@/shared/components'
+import { buildHonestPanelCsv, downloadCsv, fetchAffordability } from '@/data/live'
+import { fromApiCommodity } from '@/lib/api'
+import { LiveDot, Btn, RangeBar, StatRow, PriceHistoryChart, PaywallOverlay, PaywallPanel, ReportPriceCta, reportPriceCopy, ChangeBadge, vsAvgPct } from '@/shared/components'
+import CommodityOverviewPage from '@/features/commodity/pages/CommodityOverviewPage'
 
 const display = { fontFamily: "'SpotifyMixUITitle','CircularSp','Helvetica Neue',Helvetica,Arial,sans-serif" } as const
 
@@ -13,7 +16,8 @@ export default function PriceDetailPage({ lang, commodityId, marketId, navigate 
 }) {
   const c = getC(commodityId)
   const m = MARKETS.find(mk => mk.id === marketId)!
-  const p = getP(commodityId, marketId) as Published
+  const raw = getP(commodityId, marketId)
+  const published = raw.status === 'published' ? (raw as Published) : null
   const other = MARKETS.find(mk => mk.id !== marketId)
 
   const tier = getTier()
@@ -21,25 +25,53 @@ export default function PriceDetailPage({ lang, commodityId, marketId, navigate 
   const sourceAccess = canAccess('source')
   const depth = historyDepthDays()
   const [exportMsg, setExportMsg] = useState<'idle' | 'done' | 'limit'>('idle')
+  const [monthChangePct, setMonthChangePct] = useState<number | null>(null)
 
   const previewSeries = getPriceHistory(commodityId, marketId, 30)
   const paidSeries = depth === null ? getPriceHistory(commodityId, marketId, 180) : getPriceHistory(commodityId, marketId, Math.max(1, depth))
+  const weekSeries = getPriceHistory(commodityId, marketId, 7)
+  const weekPct = weekSeries.length >= 2 && weekSeries[0].price > 0
+    ? Math.round(((weekSeries[weekSeries.length - 1].price - weekSeries[0].price) / weekSeries[0].price) * 1000) / 10
+    : null
 
-  const doExport = () => {
+  const cityPrices = MARKETS
+    .map(mk => getP(commodityId, mk.id))
+    .filter((x): x is Published => x.status === 'published')
+    .map(x => x.price)
+  const cityAvg = cityPrices.length > 0
+    ? Math.round(cityPrices.reduce((s, v) => s + v, 0) / cityPrices.length)
+    : 0
+  const vsCity = published ? vsAvgPct(published.price, cityAvg) : null
+
+  useEffect(() => {
+    let cancelled = false
+    fetchAffordability().then(snap => {
+      if (cancelled || !snap?.items) return
+      const item = snap.items.find(
+        i => fromApiCommodity(i.commodity_code) === commodityId && i.status === 'published',
+      )
+      setMonthChangePct(item?.change_pct ?? null)
+    })
+    return () => { cancelled = true }
+  }, [commodityId])
+
+  if (!published) {
+    return <CommodityOverviewPage lang={lang} commodityId={commodityId} navigate={navigate} />
+  }
+  const p = published
+
+  const doExport = async () => {
     const access = canAccess('export')
     if (!access.allowed) {
       if (access.reason === 'limit') setExportMsg('limit')
       return
     }
-    const rows = paidSeries.map(pt => `${c.en},${m.en},${pt.date},${pt.price},${pt.reports},${Math.round(pt.userShare * 100)}%`)
-    const csv = `commodity,market,date,price_birr,reports,user_share\n${rows.join('\n')}`
-    const blob = new Blob([csv], { type: 'text/csv' })
-    const url = URL.createObjectURL(blob)
-    const a = document.createElement('a')
-    a.href = url
-    a.download = `waga_${c.id}_${m.id}.csv`
-    a.click()
-    URL.revokeObjectURL(url)
+    const panel = await buildHonestPanelCsv()
+    if (!panel) {
+      setExportMsg('limit')
+      return
+    }
+    downloadCsv(panel.csv, panel.filename)
     recordExport()
     setExportMsg('done')
   }
@@ -80,11 +112,16 @@ export default function PriceDetailPage({ lang, commodityId, marketId, navigate 
             </h1>
             <p className="theme-text-muted text-sm mb-5">📍 {lang === 'am' ? m.am : m.en} · {lang === 'en' ? 'Addis Ababa' : 'አዲስ አበባ'}</p>
 
-            <div className="flex items-baseline gap-3 mb-2">
+            <div className="flex flex-wrap items-baseline gap-3 mb-3">
               <span className="theme-stat-value" style={{ fontSize: 'clamp(52px,8vw,80px)', fontWeight: 700, letterSpacing: '-0.05em', lineHeight: 1 }}>
                 {p.price}
               </span>
               <span className="text-lg theme-text-muted font-medium">birr / {lang === 'am' ? c.unitAm : c.unit}</span>
+            </div>
+            <div className="flex flex-wrap items-center gap-2 mb-3">
+              <ChangeBadge pct={monthChangePct} suffix={lang === 'en' ? 'vs last month' : 'ከባለፈው ወር'} />
+              <ChangeBadge pct={weekPct} size="sm" suffix={lang === 'en' ? '7d' : '7ቀን'} />
+              <ChangeBadge pct={vsCity} size="sm" suffix={lang === 'en' ? 'vs city' : 'ከከተማ'} />
             </div>
             <div className="flex items-center gap-2">
               {p.stale
@@ -110,6 +147,14 @@ export default function PriceDetailPage({ lang, commodityId, marketId, navigate 
                 <StatRow label={lang === 'en' ? 'Contributors' : 'አስተዋጽዖ አድራጊዎች'} value={`${p.contributors} ${lang === 'en' ? 'people' : 'ሰዎች'}`} />
                 <StatRow label={lang === 'en' ? 'Field agents' : 'ሜዳ ወኪሎች'} value={`${p.agents} ${lang === 'en' ? 'agents' : 'ወኪሎች'}`} />
                 <StatRow label={lang === 'en' ? 'Window' : 'ጊዜ ክልል'} value={lang === 'en' ? 'Last 72 hours' : 'ያለፉ 72 ሰዓታት'} />
+                <StatRow
+                  label={lang === 'en' ? 'City average' : 'ከተማ አማካይ'}
+                  value={cityAvg > 0 ? `${cityAvg} birr` : '—'}
+                />
+                <StatRow
+                  label={lang === 'en' ? 'Vs city' : 'ከከተማ'}
+                  value={vsCity == null ? '—' : `${vsCity > 0 ? '+' : ''}${vsCity}%`}
+                />
               </div>
             </div>
 
@@ -192,44 +237,42 @@ export default function PriceDetailPage({ lang, commodityId, marketId, navigate 
                 <div className="theme-card rounded-2xl p-6">
                   <p className="text-sm theme-text-muted mb-4">
                     {lang === 'en'
-                      ? 'Download this series as CSV with full provenance attached.'
-                      : 'ይህን ተከታታይ ከሙሉ ምንጭ ጋር በCSV አውርድ።'}
+                      ? 'Download the full market×commodity panel. Insufficient-data rows included with blank price — never imputed.'
+                      : 'Full panel CSV with insufficient rows marked.'}
                   </p>
                   {exportMsg === 'limit' ? (
                     <div className="rounded-xl p-4 theme-badge-warning">
                       <p className="text-sm font-semibold">
-                        {lang === 'en' ? `Daily export limit reached (${PRO_EXPORTS_PER_DAY}/day on Professional).` : `የቀን ማውጫ ገደብ ደርሷል (${PRO_EXPORTS_PER_DAY}/ቀን በፕሮፌሽናል)።`}
+                        {lang === 'en' ? `Daily export limit reached (${PRO_EXPORTS_PER_DAY}/day on Professional).` : `Daily limit reached (${PRO_EXPORTS_PER_DAY}/day).`}
                       </p>
                       <button onClick={() => navigate({ id: 'enterprise-enquiry' })} className="text-sm font-semibold theme-accent hover:underline mt-1">
-                        {lang === 'en' ? 'Need unlimited? Talk to us →' : 'ያልተገደበ ይፈልጋሉ? አነጋግረን →'}
+                        {lang === 'en' ? 'Need unlimited? Talk to us →' : 'Talk to us →'}
                       </button>
                     </div>
                   ) : exportMsg === 'done' ? (
                     <div className="rounded-xl p-4 theme-badge-published">
-                      <p className="text-sm font-semibold theme-accent">✓ {lang === 'en' ? 'CSV downloaded.' : 'CSV ወርዷል።'}</p>
+                      <p className="text-sm font-semibold theme-accent">✓ {lang === 'en' ? 'Panel CSV downloaded.' : 'CSV downloaded.'}</p>
                     </div>
                   ) : (
-                    <Btn variant="primary" size="md" onClick={doExport}>
-                      ↓ {lang === 'en' ? 'Export CSV' : 'CSV አውጣ'}
+                    <Btn variant="primary" size="md" onClick={() => void doExport()}>
+                      ↓ {lang === 'en' ? 'Export panel CSV' : 'Export panel CSV'}
                     </Btn>
                   )}
                   {tier === 'professional' && exportMsg === 'idle' && (
-                    <p className="text-xs theme-text-dim mt-2">{exportsUsedToday()} {lang === 'en' ? 'of' : 'ከ'} {PRO_EXPORTS_PER_DAY} {lang === 'en' ? 'used today' : 'ዛሬ ተጠቅሟል'}</p>
+                    <p className="text-xs theme-text-dim mt-2">{exportsUsedToday()} of {PRO_EXPORTS_PER_DAY} used today</p>
                   )}
                 </div>
               )}
             </div>
 
-            {other && (
+            {other && getP(c.id, other.id).status === 'published' && (
               <div className="theme-card rounded-2xl p-6">
                 <h3 className="theme-section-label mb-4">{lang === 'en' ? 'Other market' : 'ሌላ ገበያ'}</h3>
                 {(() => {
-                  const op = getP(c.id, other.id)
+                  const op = getP(c.id, other.id) as Published
                   return (
                     <button
-                      onClick={() => navigate(op.status === 'published'
-                        ? { id: 'price-detail', commodityId: c.id, marketId: other.id }
-                        : { id: 'price-no-data', commodityId: c.id, marketId: other.id })}
+                      onClick={() => navigate({ id: 'price-detail', commodityId: c.id, marketId: other.id })}
                       className="w-full flex items-center gap-4 p-4 rounded-xl transition-colors duration-100 border theme-border hover:bg-[var(--surface-2)] group"
                     >
                       <div className="w-12 h-12 rounded-xl overflow-hidden flex-shrink-0">
@@ -238,10 +281,7 @@ export default function PriceDetailPage({ lang, commodityId, marketId, navigate 
                       <div className="flex-1 text-left">
                         <p className="font-semibold theme-text group-hover:theme-accent transition-colors">📍 {lang === 'am' ? other.am : other.en}</p>
                       </div>
-                      {op.status === 'published'
-                        ? <span className="font-bold theme-text" style={{ ...display, fontSize: 20 }}>{(op as Published).price} birr →</span>
-                        : <span className="text-sm font-semibold text-[var(--warning)]">⚠ {lang === 'en' ? 'No data' : 'ዳታ የለም'} →</span>
-                      }
+                      <span className="font-bold theme-text" style={{ ...display, fontSize: 20 }}>{op.price} birr →</span>
                     </button>
                   )
                 })()}

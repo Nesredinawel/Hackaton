@@ -120,6 +120,28 @@ export function signIn(email: string, password: string): SignInResult {
   return { ok: true, account }
 }
 
+/** One-click Professional trial for demos (localStorage only). */
+export function startDemoTrial(): SignUpResult {
+  const email = 'demo@waga.index'
+  const existing = allAccounts().find((a) => a.email === email)
+  if (existing) {
+    existing.tier = 'professional'
+    if (existing.subscriptionStatus === 'none' || existing.subscriptionStatus === 'cancelled') {
+      existing.subscriptionStatus = 'trial'
+    }
+    saveAccount(existing)
+    localStorage.setItem(SESSION_KEY, JSON.stringify(email))
+    return { ok: true, account: existing }
+  }
+  return signUp({
+    fullName: 'Demo Programme',
+    email,
+    password: 'demo-waga',
+    organisation: 'Waga demo',
+    language: 'en',
+  })
+}
+
 export function signOut(): void {
   localStorage.removeItem(SESSION_KEY)
 }
@@ -210,7 +232,15 @@ export function canAccess(feature: GateFeature): AccessResult {
   }
 
   // Professional + Enterprise surfaces.
-  const proSurfaces: GateFeature[] = ['history', 'source', 'confidence', 'comparison', 'map']
+  const proSurfaces: GateFeature[] = [
+    'history',
+    'source',
+    'confidence',
+    'comparison',
+    'map',
+    'dashboard',
+    'copilot',
+  ]
   if (proSurfaces.includes(feature)) {
     return tier === 'public'
       ? { allowed: false, reason: 'paywall' }

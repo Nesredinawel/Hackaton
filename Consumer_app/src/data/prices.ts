@@ -157,20 +157,47 @@ export function marketHeatIntensity(avg: number, live: number, minAvg: number, m
 }
 
 export function getMarketHeatPoints(): MarketHeatPoint[] {
-  const board = getMarketLeaderboard()
-  const priced = board.filter(e => e.avg > 0)
-  const minAvg = priced.length > 0 ? priced[priced.length - 1].avg : 0
-  const maxAvg = priced.length > 0 ? priced[0].avg : 1
+  return getCommodityHeatPoints(null)
+}
 
-  return board.map(entry => ({
-    lat: entry.market.lat,
-    lng: entry.market.lng,
-    intensity: marketHeatIntensity(entry.avg, entry.live, minAvg, maxAvg),
-    marketId: entry.market.id,
-    rank: entry.rank,
-    avg: entry.avg,
-    live: entry.live,
-  }))
+/**
+ * Heat by avg basket (commodityId null) or a single staple's published prices.
+ * Markets with no live prices get intensity 0 and are skipped by the map layer.
+ */
+export function getCommodityHeatPoints(commodityId: string | null): MarketHeatPoint[] {
+  const rows = MARKETS.map(market => {
+    if (commodityId) {
+      const p = getP(commodityId, market.id)
+      if (p.status !== 'published') {
+        return { market, avg: 0, live: 0 }
+      }
+      return { market, avg: p.price, live: 1 }
+    }
+    return { market, avg: avgBasket(market.id), live: liveCount(market.id) }
+  })
+
+  const priced = rows.filter(e => e.avg > 0)
+  const minAvg = priced.length > 0 ? Math.min(...priced.map(e => e.avg)) : 0
+  const maxAvg = priced.length > 0 ? Math.max(...priced.map(e => e.avg)) : 1
+
+  const ranked = [...rows]
+    .filter(e => e.avg > 0)
+    .sort((a, b) => b.avg - a.avg)
+
+  return rows.map(entry => {
+    const rank = ranked.findIndex(r => r.market.id === entry.market.id)
+    return {
+      lat: entry.market.lat,
+      lng: entry.market.lng,
+      intensity: entry.avg > 0
+        ? marketHeatIntensity(entry.avg, entry.live, minAvg, maxAvg)
+        : 0,
+      marketId: entry.market.id,
+      rank: rank >= 0 ? rank : 99,
+      avg: entry.avg,
+      live: entry.live,
+    }
+  })
 }
 
 /** Gradient stop color for sidebar + legend (matches heatmap layer). */
